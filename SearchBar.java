@@ -1,3 +1,5 @@
+import java.util.List;
+
 public class SearchBar {
     private Database database;
     
@@ -7,10 +9,10 @@ public class SearchBar {
     public SearchBar(Database database) {
         // Store reference to database
     }
-    
+
     /**
      * Searches for a seller by their exact user ID.
-     * 
+     *
      * @param userId The user ID to search for
      * @return The User object if found, null otherwise
      */
@@ -19,10 +21,10 @@ public class SearchBar {
         // Check if user has any active listings (is a seller)
         // Return user if they are a seller, otherwise null
     }
-    
+
     /**
      * Searches for sellers whose user IDs contain the search term.
-     * 
+     *
      * @param searchTerm The term to search for in user IDs
      * @return List of users whose IDs contain the search term and who have listings
      */

@@ -1,3 +1,5 @@
+import java.util.List;
+
 public class SearchService {
     private Database database;
     
