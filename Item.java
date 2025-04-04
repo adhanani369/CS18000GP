@@ -1,6 +1,13 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Item {
+    private static int itemCount;
     private String itemId;
     private String sellerId;
     private String title;
@@ -9,6 +16,7 @@ public class Item {
     private List<String> tags;
     private double price;
     private double rating;
+    private int ratingCount;
     private boolean sold;
     private String buyerId;
     
@@ -20,6 +28,17 @@ public class Item {
         // Generate a simple ID
         // Set sold to false and buyerId to null
         // Extract tags from description
+        this.sellerId = sellerId;
+        this.title = title;
+        this.description = description;
+        this.category = category;
+        this.price = price;
+        this.sold = false;
+        this.buyerId = null;
+        this.ratingCount = 0;
+        this.itemId = Integer.toString(++Item.itemCount);   
+        this.tags = this.getTags(this.getStopwords());
+
     }
     
     /**
@@ -27,6 +46,7 @@ public class Item {
      */
     public String getItemId() {
         // Return itemId
+        return this.itemId;
     }
     
     /**
@@ -34,6 +54,7 @@ public class Item {
      */
     public String getSellerId() {
         // Return sellerId
+        return this.sellerId;
     }
     
     /**
@@ -41,6 +62,7 @@ public class Item {
      */
     public String getTitle() {
         // Return title
+        return this.title;
     }
     
     /**
@@ -48,6 +70,7 @@ public class Item {
      */
     public String getDescription() {
         // Return description
+        return this.description;
     }
     
     /**
@@ -55,6 +78,7 @@ public class Item {
      */
     public String getCategory() {
         // Return category
+        return this.category;
     }
     
     /**
@@ -62,6 +86,7 @@ public class Item {
      */
     public List<String> getTags() {
         // Return tags
+        return this.tags;
     }
     
     /**
@@ -69,6 +94,7 @@ public class Item {
      */
     public double getPrice() {
         // Return price
+        return this.price;
     }
     
     /**
@@ -76,13 +102,18 @@ public class Item {
      */
     public double getRating() {
         // Return rating
+        return this.rating;
     }
+
     
     /**
      * Updates the item's rating with a new user rating.
      */
     public void updateRating(double newRating) {
         // Calculate new average rating
+        double currentRating = this.getRating(); // Tracks the current rating
+        double newAverageRating = (ratingCount * currentRating + newRating) / (++ratingCount); // Calculates the new rating
+        this.rating = newAverageRating;
     }
     
     /**
@@ -90,7 +121,9 @@ public class Item {
      */
     public boolean isSold() {
         // Return sold status
+        return this.sold;
     }
+
     
     /**
      * Marks this item as sold to the specified buyer.
@@ -100,6 +133,11 @@ public class Item {
         // Set sold to true
         // Set buyerId
         // Return success/failure
+        if (this.sold == false) {
+            this.sold = true;
+            return true; // Marks successfull
+        }
+        return false; // Marks unsuccessfull
     }
     
     /**
@@ -107,5 +145,55 @@ public class Item {
      */
     public String getBuyerId() {
         // Return buyerId
+        return this.buyerId;
     }
+
+    public List<String> extractTags() {
+        // Return tags
+        return tags;
+    } 
+
+    public List<String> getStopwords() {
+        System.out.println(new File(".").getAbsolutePath());
+        try (BufferedReader br = new BufferedReader(new FileReader("stopword.txt"))) {
+            String stopWordsRaw = br.readLine(); // Gets the uncleaned version of all the stop words
+            return Arrays.asList(stopWordsRaw.split(",")); // Splits and returns an array containing the stop words
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<String> getTags(List<String> stopwords) {
+        List<String> descriptionWords = Arrays.asList(this.description.split(" ")); // Splits the description to indivitual words
+        List<String> finalTagList = new ArrayList<>();
+        for (String word : descriptionWords) {
+            if (stopwords.contains(word.toLowerCase()) == false) {
+                finalTagList.add(cleanWord(word));
+            }
+        }
+        return finalTagList;
+    }
+
+    /*
+     * Cleans the word from any commas or other special characters
+     */
+    public String cleanWord(String word) {
+        List<String> finalSpecialCharacters = null;
+        try (BufferedReader br = new BufferedReader(new FileReader("special_characters.txt"))) {
+            String characters = br.readLine(); // Gets the uncleaned version of all the stop words
+            finalSpecialCharacters = Arrays.asList(characters.split(" ")); // Splits and returns an array containing the special characters
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+        for (String character : finalSpecialCharacters) {
+            int count = word.indexOf(character);
+            if (count > 0) {
+                word = word.replaceAll("\\Q" + character + "\\E", "");
+            }
+        }
+        return word;
+    }
+
 }
