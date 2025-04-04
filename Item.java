@@ -135,6 +135,7 @@ public class Item {
         // Return success/failure
         if (this.sold == false) {
             this.sold = true;
+            this.buyerId = buyerId;
             return true; // Marks successfull
         }
         return false; // Marks unsuccessfull
