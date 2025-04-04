@@ -1,4 +1,4 @@
-public class Message {
+public class Message implements MessageInterface {
     private String messageId;
     private String senderId;
     private String receiverId;
@@ -17,6 +17,7 @@ public class Message {
     /**
      * Gets the message's unique identifier.
      */
+    @Override
     public String getMessageId() {
         // TODO Return messageId
         return null;
@@ -25,6 +26,7 @@ public class Message {
     /**
      * Gets the ID of the message sender.
      */
+    @Override
     public String getSenderId() {
         // TODO Return senderId
         return null;
@@ -33,6 +35,7 @@ public class Message {
     /**
      * Gets the ID of the message receiver.
      */
+    @Override
     public String getReceiverId() {
         // TODO: Return receiverId
         return null;
@@ -41,6 +44,7 @@ public class Message {
     /**
      * Gets the message content.
      */
+    @Override
     public String getContent() {
         // TODO: Return content
         return null;
@@ -49,6 +53,7 @@ public class Message {
     /**
      * Gets the message timestamp.
      */
+    @Override
     public long getTimestamp() {
         // TODO Return timestamp
         return 0;

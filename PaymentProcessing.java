@@ -1,4 +1,4 @@
-public class PaymentProcessing {
+public class PaymentProcessing implements PaymentProcessingInterface {
     private Database database;
     
     /**
@@ -12,6 +12,7 @@ public class PaymentProcessing {
     /**
      * Adds funds to a user's account.
      */
+    @Override
     public boolean addFunds(String userId, double amount) {
         // Find user by ID
         // Call user.depositFunds()
@@ -22,6 +23,7 @@ public class PaymentProcessing {
     /**
      * Withdraws funds from a user's account.
      */
+    @Override
     public boolean withdrawFunds(String userId, double amount) {
         // Find user by ID
         // Call user.withdrawFunds()
@@ -32,6 +34,7 @@ public class PaymentProcessing {
     /**
      * Processes a purchase transaction between buyer and seller.
      */
+    @Override
     public boolean processPurchase(String buyerId, String itemId) {
         // Find buyer, item, and seller
         // Check if buyer has sufficient funds

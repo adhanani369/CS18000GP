@@ -1,6 +1,6 @@
 import java.util.List;
 
-public class SearchBar {
+public class SearchBar implements SearchBarInterface {
     private Database database;
     
     /**
@@ -16,6 +16,7 @@ public class SearchBar {
      * @param userId The user ID to search for
      * @return The User object if found, null otherwise
      */
+    @Override
     public User findSellerById(String userId) {
         // Get user from database by ID
         // Check if user has any active listings (is a seller)
@@ -29,6 +30,7 @@ public class SearchBar {
      * @param searchTerm The term to search for in user IDs
      * @return List of users whose IDs contain the search term and who have listings
      */
+    @Override
     public List<User> searchSellersByPartialId(String searchTerm) {
         // Get all users from database
         // Filter for users that have active listings
@@ -43,6 +45,7 @@ public class SearchBar {
      * 
      * @return List of all users who have at least one active listing
      */
+    @Override
     public List<User> getAllActiveSellers() {
         // Get all users from database
         // Filter for users that have at least one active listing

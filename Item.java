@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Item {
+public class Item implements ItemInterface {
     private static int itemCount;
     private String itemId;
     private String sellerId;
@@ -44,6 +44,7 @@ public class Item {
     /**
      * Gets the item's unique identifier.
      */
+    @Override
     public String getItemId() {
         // Return itemId
         return this.itemId;
@@ -52,6 +53,7 @@ public class Item {
     /**
      * Gets the ID of the user selling this item.
      */
+    @Override
     public String getSellerId() {
         // Return sellerId
         return this.sellerId;
@@ -60,6 +62,7 @@ public class Item {
     /**
      * Gets the title of this item.
      */
+    @Override
     public String getTitle() {
         // Return title
         return this.title;
@@ -68,6 +71,7 @@ public class Item {
     /**
      * Gets the description of this item.
      */
+    @Override
     public String getDescription() {
         // Return description
         return this.description;
@@ -76,6 +80,7 @@ public class Item {
     /**
      * Gets the category of this item.
      */
+    @Override
     public String getCategory() {
         // Return category
         return this.category;
@@ -84,6 +89,7 @@ public class Item {
     /**
      * Gets the tags associated with this item.
      */
+    @Override
     public List<String> getTags() {
         // Return tags
         return this.tags;
@@ -92,6 +98,7 @@ public class Item {
     /**
      * Gets the price of this item.
      */
+    @Override
     public double getPrice() {
         // Return price
         return this.price;
@@ -100,6 +107,7 @@ public class Item {
     /**
      * Gets the current rating of this item.
      */
+    @Override
     public double getRating() {
         // Return rating
         return this.rating;
@@ -109,6 +117,7 @@ public class Item {
     /**
      * Updates the item's rating with a new user rating.
      */
+    @Override
     public void updateRating(double newRating) {
         // Calculate new average rating
         double currentRating = this.getRating(); // Tracks the current rating
@@ -119,6 +128,7 @@ public class Item {
     /**
      * Checks whether this item has been sold.
      */
+    @Override
     public boolean isSold() {
         // Return sold status
         return this.sold;
@@ -128,6 +138,7 @@ public class Item {
     /**
      * Marks this item as sold to the specified buyer.
      */
+    @Override
     public boolean markAsSold(String buyerId) {
         // If not already sold:
         // Set sold to true
@@ -144,16 +155,19 @@ public class Item {
     /**
      * Gets the ID of the user who purchased this item.
      */
+    @Override
     public String getBuyerId() {
         // Return buyerId
         return this.buyerId;
     }
 
+    @Override
     public List<String> extractTags() {
         // Return tags
         return tags;
     } 
 
+    @Override
     public List<String> getStopwords() {
         System.out.println(new File(".").getAbsolutePath());
         try (BufferedReader br = new BufferedReader(new FileReader("stopword.txt"))) {
@@ -165,6 +179,7 @@ public class Item {
         }
     }
 
+    @Override
     public List<String> getTags(List<String> stopwords) {
         List<String> descriptionWords = Arrays.asList(this.description.split(" ")); // Splits the description to indivitual words
         List<String> finalTagList = new ArrayList<>();
@@ -179,6 +194,7 @@ public class Item {
     /*
      * Cleans the word from any commas or other special characters
      */
+    @Override
     public String cleanWord(String word) {
         List<String> finalSpecialCharacters = null;
         try (BufferedReader br = new BufferedReader(new FileReader("special_characters.txt"))) {

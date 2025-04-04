@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
 
-public class User {
+public class User implements UserInterface {
     private String userId;
     private String username;
     private String password;
@@ -31,6 +31,7 @@ public class User {
     /**
      * Gets the user's bio.
      */
+    @Override
     public String getBio() {
         return this.bio;
     }
@@ -39,6 +40,7 @@ public class User {
     /**
      * Gets the user's unique identifier.
      */
+    @Override
     public String getUserId() {
         return userId;
     }
@@ -46,6 +48,7 @@ public class User {
     /**
      * Gets the user's username.
      */
+    @Override
     public String getUsername() {
         return username;
 
@@ -54,6 +57,7 @@ public class User {
     /**
      * Validates if the provided password matches the user's password.
      */
+    @Override
     public boolean validatePassword(String password) {
         return this.password.equals(password);
     }
@@ -61,6 +65,7 @@ public class User {
     /**
      * Adds funds to the user's balance.
      */
+    @Override
     public void depositFunds(double amount) {
         // Verify amount is positive
         // Add amount to balance
@@ -71,6 +76,7 @@ public class User {
     /**
      * Removes funds from the user's balance if sufficient funds are available.
      */
+    @Override
     public boolean withdrawFunds(double amount) {
         if (amount > 0 && amount <= balance) {
             this.balance -= amount;
@@ -82,6 +88,7 @@ public class User {
     /**
      * Gets the current balance of the user's account.
      */
+    @Override
     public double getBalance() {
         return this.balance;
     }
@@ -89,6 +96,7 @@ public class User {
     /**
      * Adds a new item to the user's active listings.
      */
+    @Override
     public void addListing(Item item) {
         if (item.getSellerId().equals(this.userId)) {
             this.activeListings.add(item);
@@ -98,6 +106,7 @@ public class User {
     /**
      * Removes an item from the user's active listings.
      */
+    @Override
     public boolean removeListing(String itemId) {
         // Find and remove item with matching ID
         // Return success/failure
@@ -113,6 +122,7 @@ public class User {
     /**
      * Records a purchased item in the user's purchase history.
      */
+    @Override
     public void addToPurchaseHistory(Item item) {
         this.purchaseHistory.add(item);
     }
@@ -120,6 +130,7 @@ public class User {
     /**
      * Records a sold item in the user's sold items history.
      */
+    @Override
     public void recordItemSold(Item item) {
         // Remove item from activeListings
         // Add item to soldItems
@@ -134,6 +145,7 @@ public class User {
     /**
      * Gets all items currently listed by the user.
      */
+    @Override
     public ArrayList<Item> getActiveListings() {
         return activeListings;
     }
@@ -141,6 +153,7 @@ public class User {
     /**
      * Gets all items purchased by the user.
      */
+    @Override
     public ArrayList<Item> getPurchaseHistory() {
         return purchaseHistory;
     }
@@ -148,6 +161,7 @@ public class User {
     /**
      * Gets all items sold by the user.
      */
+    @Override
     public ArrayList<Item> getSoldItems() {
         return soldItems;
     }
