@@ -17,6 +17,7 @@ public class SearchService {
         // Extract keywords from query
         // Find items with matching keywords in title, description, or tags
         // Return matching items
+        return null;
     }
     
     /**
@@ -25,6 +26,7 @@ public class SearchService {
     public List<Item> search(String query, String category) {
         // Find items matching query and category
         // Return matching items
+        return null;
     }
     
     /**
@@ -34,6 +36,7 @@ public class SearchService {
         // Find items matching query
         // Limit results to maxResults
         // Return matching items
+        return null;
     }
     
     /**
@@ -43,5 +46,6 @@ public class SearchService {
         // Find items matching query and category
         // Limit results to maxResults
         // Return matching items
+        return null;
     }
 }

@@ -6,6 +6,7 @@ public class PaymentProcessing {
      */
     public PaymentProcessing(Database database) {
         // Store reference to database
+        this.database = database;
     }
     
     /**
@@ -15,6 +16,7 @@ public class PaymentProcessing {
         // Find user by ID
         // Call user.depositFunds()
         // Return success/failure
+        return false;
     }
     
     /**
@@ -24,6 +26,7 @@ public class PaymentProcessing {
         // Find user by ID
         // Call user.withdrawFunds()
         // Return success/failure
+        return false;
     }
     
     /**
@@ -37,5 +40,6 @@ public class PaymentProcessing {
         // Mark item as sold
         // Update purchase/sale records
         // Return success/failure
+        return false;
     }
 }

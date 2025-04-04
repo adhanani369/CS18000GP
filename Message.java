@@ -18,34 +18,39 @@ public class Message {
      * Gets the message's unique identifier.
      */
     public String getMessageId() {
-        // Return messageId
+        // TODO Return messageId
+        return null;
     }
     
     /**
      * Gets the ID of the message sender.
      */
     public String getSenderId() {
-        // Return senderId
+        // TODO Return senderId
+        return null;
     }
     
     /**
      * Gets the ID of the message receiver.
      */
     public String getReceiverId() {
-        // Return receiverId
+        // TODO: Return receiverId
+        return null;
     }
     
     /**
      * Gets the message content.
      */
     public String getContent() {
-        // Return content
+        // TODO: Return content
+        return null;
     }
     
     /**
      * Gets the message timestamp.
      */
     public long getTimestamp() {
-        // Return timestamp
+        // TODO Return timestamp
+        return 0;
     }
 }

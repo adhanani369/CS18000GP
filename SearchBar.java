@@ -20,6 +20,7 @@ public class SearchBar {
         // Get user from database by ID
         // Check if user has any active listings (is a seller)
         // Return user if they are a seller, otherwise null
+        return null;
     }
 
     /**
@@ -34,6 +35,7 @@ public class SearchBar {
         // Filter by userID containing searchTerm
         // Return matching sellers
         // WE DONT NEED TO IMPLEMENT IT FOR THE START ONLY IF WE THINK THIS WILL WORK AND IS CUTE!!! EXTRA FEATURE TO MAKE THE PROJECT MORE REAL AND COMPLELLING!
+        return null;
     }
     
     /**
@@ -46,5 +48,6 @@ public class SearchBar {
         // Filter for users that have at least one active listing
         // Return list of active sellers
         // we could use this to reduce burden on the database and faster the code if we want to make the code a little faster!! Again only a cute thing to have not necessary!
+        return null;
     }
 }
