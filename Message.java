@@ -1,17 +1,36 @@
+import java.time.Instant;
+import java.util.UUID;
+
 public class Message implements MessageInterface {
     private String messageId;
     private String senderId;
     private String receiverId;
     private String content;
     private long timestamp;
-    
+    private boolean read;
     /**
-     * Creates a new message.
+     * Creates a new message with time stamps.
      */
     public Message(String senderId, String receiverId, String content) {
-        // Initialize message with sender, receiver, content
-        // Generate a simple ID
-        // Set timestamp to current time
+        this.messageId = UUID.randomUUID().toString();
+        this.senderId = senderId;
+        this.receiverId = receiverId;
+        this.content = content;
+        this.timestamp = System.currentTimeMillis();
+        this.read = false;
+    }
+
+    /**
+     * Creates a message with specified timestamp and read status.
+     */
+    public Message(String senderId, String receiverId, String content,
+                   long timestamp, boolean read) {
+        this.messageId = UUID.randomUUID().toString();
+        this.senderId = senderId;
+        this.receiverId = receiverId;
+        this.content = content;
+        this.timestamp = timestamp;
+        this.read = read;
     }
     
     /**
@@ -20,7 +39,7 @@ public class Message implements MessageInterface {
     @Override
     public String getMessageId() {
         // TODO Return messageId
-        return null;
+        return messageId;
     }
     
     /**
@@ -29,7 +48,7 @@ public class Message implements MessageInterface {
     @Override
     public String getSenderId() {
         // TODO Return senderId
-        return null;
+        return senderId;
     }
     
     /**
@@ -38,7 +57,7 @@ public class Message implements MessageInterface {
     @Override
     public String getReceiverId() {
         // TODO: Return receiverId
-        return null;
+        return receiverId;
     }
     
     /**
@@ -47,7 +66,7 @@ public class Message implements MessageInterface {
     @Override
     public String getContent() {
         // TODO: Return content
-        return null;
+        return content;
     }
     
     /**
@@ -56,6 +75,31 @@ public class Message implements MessageInterface {
     @Override
     public long getTimestamp() {
         // TODO Return timestamp
-        return 0;
+        return timestamp;
+    }
+
+    /**
+     * Checks if the message has been read.
+     */
+    public boolean isRead() {
+        return read;
+    }
+
+    /**
+     * Marks the message as read.
+     */
+    public void markAsRead() {
+        this.read = true;
+    }
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "from=" + senderId +
+                ", to=" + receiverId +
+                ", content='" + content + '\'' +
+                ", sent=" + Instant.ofEpochMilli(timestamp) +
+                ", read=" + read +
+                '}';
     }
 }

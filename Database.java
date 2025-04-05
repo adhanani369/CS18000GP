@@ -7,6 +7,7 @@ public class Database {
     private Map<String, User> usersById;
     private Map<String, Item> items;
     private List<Message> messages;
+    private Map<String, Map<String, String>> userConversations; // userId -> (conversationKey -> fileName)
 
 
     private static final String USER_FILE = "users.txt";
@@ -21,7 +22,7 @@ public class Database {
         usersById = new HashMap<>();
         items = new HashMap<>();
         messages = new ArrayList<>();
-
+        userConversations = new HashMap<>(); // Initialize the userConversations map
     }
 
     /**
@@ -134,7 +135,52 @@ public class Database {
 
 
     /**
-     * Adds a message to the database.
+     * Adds a message with buyer/seller role identification.
+     */
+    public synchronized boolean addMessage(Message message, String itemId) {
+        User sender = usersById.get(message.getSenderId());
+        User receiver = usersById.get(message.getReceiverId());
+
+        if (sender == null || receiver == null) {
+            return false;
+        }
+
+        // Determine buyer and seller based on the item
+        Item item = items.get(itemId);
+        if (item == null) {
+            return false;
+        }
+
+        String buyerId, sellerId;
+
+        // If sender is seller, receiver is buyer
+        if (item.getSellerId().equals(message.getSenderId())) {
+            sellerId = message.getSenderId();
+            buyerId = message.getReceiverId();
+        } else {
+            // If sender is buyer, receiver is seller
+            buyerId = message.getSenderId();
+            sellerId = message.getReceiverId();
+        }
+
+        // Add to messages list
+        messages.add(message);
+
+        // Save to conversation file
+        String fileName = getConversationFile(buyerId, sellerId);
+
+        try (PrintWriter writer = new PrintWriter(new FileWriter(fileName, true))) {
+            // Format: userID:message
+            writer.println(message.getSenderId() + ":" + message.getContent());
+            return true;
+        } catch (IOException e) {
+            System.err.println("Error writing to conversation file: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * For backward compatibility - use when item ID is not known
      */
     public synchronized boolean addMessage(Message message) {
         User sender = usersById.get(message.getSenderId());
@@ -144,11 +190,113 @@ public class Database {
             return false;
         }
 
+        // Default to assuming sender is buyer
+        String buyerId = message.getSenderId();
+        String sellerId = message.getReceiverId();
+
+        // Add to messages list
         messages.add(message);
-        return true;
+
+        // Save to conversation file
+        String fileName = getConversationFile(buyerId, sellerId);
+
+        try (PrintWriter writer = new PrintWriter(new FileWriter(fileName, true))) {
+            // Format: userID:message
+            writer.println(message.getSenderId() + ":" + message.getContent());
+            return true;
+        } catch (IOException e) {
+            System.err.println("Error writing to conversation file: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets messages between a buyer and seller.
+     */
+    public synchronized List<Message> getMessagesBetweenBuyerAndSeller(String buyerId, String sellerId) {
+        List<Message> conversation = new ArrayList<>();
+
+        // Get conversation file
+        String fileName = getConversationFile(buyerId, sellerId);
+        File file = new File(fileName);
+
+        if (!file.exists()) {
+            return conversation;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            long timestamp = System.currentTimeMillis() - 10000; // Base timestamp
+
+            while ((line = reader.readLine()) != null) {
+                int colonIndex = line.indexOf(':');
+                if (colonIndex > 0) {
+                    String senderId = line.substring(0, colonIndex);
+                    String content = line.substring(colonIndex + 1);
+
+                    // Determine receiver
+                    String receiverId = senderId.equals(buyerId) ? sellerId : buyerId;
+
+                    // Create message object
+                    Message message = new Message(senderId, receiverId, content, timestamp, false);
+                    timestamp += 1; // Increment for order
+
+                    conversation.add(message);
+                }
+            }
+
+            return conversation;
+        } catch (IOException e) {
+            System.err.println("Error reading conversation file: " + e.getMessage());
+            return conversation;
+        }
+    }
+
+    /**
+     * Gets all users a person is buying from and selling to.
+     */
+    public synchronized Map<String, List<String>> getUserRoleBasedConversations(String userId) {
+        Map<String, List<String>> result = new HashMap<>();
+        List<String> buyingFrom = new ArrayList<>();
+        List<String> sellingTo = new ArrayList<>();
+
+        Map<String, String> userConvs = userConversations.get(userId);
+        if (userConvs != null) {
+            for (Map.Entry<String, String> entry : userConvs.entrySet()) {
+                String key = entry.getKey();
+                if (key.startsWith("buying_from_")) {
+                    buyingFrom.add(key.substring("buying_from_".length()));
+                } else if (key.startsWith("selling_to_")) {
+                    sellingTo.add(key.substring("selling_to_".length()));
+                }
+            }
+        }
+
+        result.put("buyingFrom", buyingFrom);
+        result.put("sellingTo", sellingTo);
+        return result;
     }
 
 
+    /**
+     * Gets all conversation partners regardless of role.
+     */
+    public synchronized List<String> getAllConversationPartners(String userId) {
+        Set<String> partners = new HashSet<>();
+
+        Map<String, String> userConvs = userConversations.get(userId);
+        if (userConvs != null) {
+            for (String key : userConvs.keySet()) {
+                if (key.startsWith("buying_from_")) {
+                    partners.add(key.substring("buying_from_".length()));
+                } else if (key.startsWith("selling_to_")) {
+                    partners.add(key.substring("selling_to_".length()));
+                }
+            }
+        }
+
+        return new ArrayList<>(partners);
+    }
 
     /**
      * Reads user data from file.
@@ -273,37 +421,116 @@ public class Database {
     /**
      * Reads message data from file.
      */
-    public synchronized void readMessageFile() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(MESSAGE_FILE))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length >= 4) {
-                    String messageId = parts[0];
-                    String senderId = parts[1];
-                    String receiverId = parts[2];
-                    long timestamp = Long.parseLong(parts[3]);
+    public synchronized void readMessageFiles() {
+        // Clear existing map
+        userConversations.clear();
 
-                    // Content might contain commas, so rejoin remaining parts
-                    StringBuilder content = new StringBuilder();
-                    for (int i = 4; i < parts.length; i++) {
-                        if (i > 4) content.append(",");
-                        content.append(parts[i]);
+        // Find all conversation files
+        File directory = new File(".");
+        File[] files = directory.listFiles((dir, name) -> name.startsWith("buyer_") && name.endsWith(".txt"));
+
+        if (files != null) {
+            for (File file : files) {
+                String fileName = file.getName();
+                // Parse "buyer_[buyerId]_seller_[sellerId].txt"
+                if (fileName.contains("_seller_")) {
+                    try {
+                        String buyerPart = fileName.substring(fileName.indexOf("buyer_") + 6, fileName.indexOf("_seller_"));
+                        String sellerPart = fileName.substring(fileName.indexOf("_seller_") + 8, fileName.lastIndexOf(".txt"));
+
+                        String buyerId = buyerPart;
+                        String sellerId = sellerPart;
+
+                        // Add to buyer's conversations
+                        ensureUserMap(buyerId);
+                        userConversations.get(buyerId).put("buying_from_" + sellerId, fileName);
+
+                        // Add to seller's conversations
+                        ensureUserMap(sellerId);
+                        userConversations.get(sellerId).put("selling_to_" + buyerId, fileName);
+
+                        // Read messages into memory if needed
+                        readMessagesFromFile(fileName);
+
+                    } catch (Exception e) {
+                        System.err.println("Error parsing filename: " + fileName + " - " + e.getMessage());
                     }
+                }
+            }
+        }
+    }
 
-                    // Create message
-                    Message message = new Message(senderId, receiverId, content.toString());
-                    // We need access to set the ID and timestamp or a constructor that takes them
-                    // This is simplified - actual implementation would depend on Message class
+
+    /**
+     * Ensures a user has a map entry in userConversations.
+     */
+    private void ensureUserMap(String userId) {
+        if (!userConversations.containsKey(userId)) {
+            userConversations.put(userId, new HashMap<>());
+        }
+    }
+
+    /**
+     * Gets the conversation file for a specific buyer-seller interaction.
+     */
+    private String getConversationFile(String buyerId, String sellerId) {
+        // Check if this specific buyer-seller conversation exists
+        Map<String, String> buyerConversations = userConversations.get(buyerId);
+        if (buyerConversations != null) {
+            String key = "buying_from_" + sellerId;
+            if (buyerConversations.containsKey(key)) {
+                return buyerConversations.get(key);
+            }
+        }
+
+        // Create new file name with buyer first, seller second
+        String fileName = "buyer_" + buyerId + "_seller_" + sellerId + ".txt";
+
+        // Update maps for both users with role-specific keys
+        ensureUserMap(buyerId);
+        userConversations.get(buyerId).put("buying_from_" + sellerId, fileName);
+
+        ensureUserMap(sellerId);
+        userConversations.get(sellerId).put("selling_to_" + buyerId, fileName);
+
+        return fileName;
+    }
+
+    /**
+     * Reads messages from a file into the in-memory messages list
+     */
+    private void readMessagesFromFile(String fileName) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            long timestamp = System.currentTimeMillis() - 10000; // Base timestamp
+
+            while ((line = reader.readLine()) != null) {
+                int colonIndex = line.indexOf(':');
+                if (colonIndex > 0) {
+                    String senderId = line.substring(0, colonIndex);
+                    String content = line.substring(colonIndex + 1);
+
+                    // Find the buyer and seller IDs from the filename
+                    String fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+                    String buyerId = fileNameWithoutExt.substring(fileNameWithoutExt.indexOf("buyer_") + 6,
+                            fileNameWithoutExt.indexOf("_seller_"));
+                    String sellerId = fileNameWithoutExt.substring(fileNameWithoutExt.indexOf("_seller_") + 8);
+
+                    // Determine receiver based on sender
+                    String receiverId = senderId.equals(buyerId) ? sellerId : buyerId;
+
+                    // Create message object
+                    Message message = new Message(senderId, receiverId, content, timestamp, false);
+                    timestamp += 1; // Increment for order
 
                     messages.add(message);
                 }
             }
-        } catch (IOException | NumberFormatException e) {
+        } catch (IOException e) {
             System.err.println("Error reading message file: " + e.getMessage());
-            // Continue with empty messages list
         }
     }
+
 
     /**
      * Writes message data to file.
