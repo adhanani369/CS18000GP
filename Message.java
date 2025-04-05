@@ -12,6 +12,12 @@ public class Message implements MessageInterface {
         // Initialize message with sender, receiver, content
         // Generate a simple ID
         // Set timestamp to current time
+        this.senderId = senderId;
+        this.receiverId = receiverId;
+        this.content = content;
+        
+        this.messageId = java.util.UUID.randomUUID().toString();
+        this.timestamp = System.currentTimeMillis();
     }
     
     /**
@@ -20,7 +26,7 @@ public class Message implements MessageInterface {
     @Override
     public String getMessageId() {
         // TODO Return messageId
-        return null;
+        return messageId;
     }
     
     /**
@@ -29,7 +35,7 @@ public class Message implements MessageInterface {
     @Override
     public String getSenderId() {
         // TODO Return senderId
-        return null;
+        return senderId;
     }
     
     /**
@@ -38,7 +44,7 @@ public class Message implements MessageInterface {
     @Override
     public String getReceiverId() {
         // TODO: Return receiverId
-        return null;
+        return receiverId;
     }
     
     /**
@@ -47,7 +53,7 @@ public class Message implements MessageInterface {
     @Override
     public String getContent() {
         // TODO: Return content
-        return null;
+        return content;
     }
     
     /**
@@ -56,6 +62,6 @@ public class Message implements MessageInterface {
     @Override
     public long getTimestamp() {
         // TODO Return timestamp
-        return 0;
+        return timestamp;
     }
 }
