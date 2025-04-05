@@ -1,5 +1,7 @@
+import javax.xml.crypto.Data;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class User {
     private String userId;
@@ -10,11 +12,13 @@ public class User {
     private ArrayList<Item> activeListings;
     private ArrayList<Item> purchaseHistory;
     private ArrayList<Item> soldItems;
+    private Database database;
+
 
     /**
      * Creates a new user with the specified credentials.
      */
-    public User(String username, String password, String bio) {
+    public User(String username, String password, String bio, Database database) {
         // Initialize user with username, password, bio
         // Set initial balance to zero
         // Create empty lists for listings, purchases, and sales
@@ -26,8 +30,25 @@ public class User {
         this.purchaseHistory = new ArrayList<Item>();
         this.activeListings = new ArrayList<Item>();
         this.userId = java.util.UUID.randomUUID().toString();
+        this.database = database;
 
     }
+
+
+    //Another Constructor to fill the user information.
+    public User(String username, String password, String bio, double balance, ArrayList<Item> activeListings, ArrayList<Item> purchaseHistory, ArrayList<Item> soldItems, String existingUserId, Database database) {
+        this.username = username;
+        this.password = password;
+        this.bio = bio;
+        this.balance = balance;
+        this.activeListings = activeListings !=null ? activeListings : new ArrayList<>();
+        this.purchaseHistory = purchaseHistory != null ? purchaseHistory : new ArrayList<>();
+        this.soldItems = soldItems != null ? soldItems : new ArrayList<>();
+        this.userId = existingUserId !=null ? existingUserId : java.util.UUID.randomUUID().toString();
+        this.database = database;
+
+    }
+
     /**
      * Gets the user's bio.
      */
@@ -132,23 +153,39 @@ public class User {
     }
 
     /**
-     * Gets all items currently listed by the user.
+     * Dynamically calculates active listings.
      */
     public ArrayList<Item> getActiveListings() {
-        return activeListings;
+        // Filter items that belong to this user and are not sold
+        return database.getAllItems().stream()
+                .filter(item -> item.getSellerId().equals(this.userId) && !item.isSold())
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
-     * Gets all items purchased by the user.
+     * Dynamically calculates purchase history.
      */
     public ArrayList<Item> getPurchaseHistory() {
-        return purchaseHistory;
+        // Filter items purchased by this user
+        return database.getAllItems().stream()
+                .filter(item -> item.isSold() && item.getBuyerId().equals(this.userId))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
-     * Gets all items sold by the user.
+     * Dynamically calculates sold items.
      */
     public ArrayList<Item> getSoldItems() {
-        return soldItems;
+        // Filter items sold by this user
+        return database.getAllItems().stream()
+                .filter(item -> item.getSellerId().equals(this.userId) && item.isSold())
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    /**
+     * Retrieves the user password
+     * */
+    public String getPassword() {
+        return this.password;
     }
 }
