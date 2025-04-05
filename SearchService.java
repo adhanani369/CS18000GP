@@ -1,51 +1,67 @@
+import java.util.ArrayList;
 import java.util.List;
 
 public class SearchService {
-    private Database database;
-    
-    /**
-     * Creates a new SearchService instance.
-     */
-    public SearchService(Database database) {
-        // Store reference to database
+    private Database db;
+
+    public SearchService(Database db) {
+        this.db = db;
     }
-    
-    /**
-     * Searches for items matching the given query.
-     */
+
     public List<Item> search(String query) {
-        // Extract keywords from query
-        // Find items with matching keywords in title, description, or tags
-        // Return matching items
-        return null;
+        return search(query, null, Integer.MAX_VALUE);
     }
-    
-    /**
-     * Searches for items in a specific category.
-     */
+
     public List<Item> search(String query, String category) {
-        // Find items matching query and category
-        // Return matching items
-        return null;
+        return search(query, category, Integer.MAX_VALUE);
     }
-    
-    /**
-     * Searches with a limit on results.
-     */
+
     public List<Item> search(String query, int maxResults) {
-        // Find items matching query
-        // Limit results to maxResults
-        // Return matching items
-        return null;
+        return search(query, null, maxResults);
     }
-    
-    /**
-     * Full search with all parameters.
-     */
+
     public List<Item> search(String query, String category, int maxResults) {
-        // Find items matching query and category
-        // Limit results to maxResults
-        // Return matching items
-        return null;
+        List<Item> result = new ArrayList<>();
+        String[] keywords = query.toLowerCase().split("\\s+");
+
+        for (Item item : db.getAllItems()) {
+            if (category != null && !category.isEmpty() &&
+                !item.getCategory().equalsIgnoreCase(category)) {
+                continue;
+            }
+
+            String title = item.getTitle().toLowerCase();
+            String description = item.getDescription().toLowerCase();
+            
+            boolean found = false;
+
+            for (String kw : keywords) {
+                if (title.contains(kw) || description.contains(kw)) {
+                    found = true;
+                    break;
+                }
+                List<String> tags = item.getTags();
+                if (tags != null) {
+                    for (String tag : tags) {
+                        if (tag.toLowerCase().contains(kw)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (found)
+                    break;
+            }
+
+            if (found) {
+                result.add(item);
+            }
+
+            if (result.size() >= maxResults) {
+                break;
+            }
+        }
+
+        return result;
     }
 }
