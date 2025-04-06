@@ -178,6 +178,7 @@ public class Item implements ItemInterface{
     /*
      * Gets the stop words from reading the stopwords.txt file
      */
+    @Override
     public List<String> getStopwords() {
         try (BufferedReader br = new BufferedReader(new FileReader("stopword.txt"))) {
             String stopWordsRaw = br.readLine(); // Gets the uncleaned version of all the stop words
@@ -191,6 +192,7 @@ public class Item implements ItemInterface{
     /*
      * Extracts the tags from the description and cleans each word
      */
+
     public List<String> extractTags(List<String> stopwords) {
         List<String> descriptionWords = Arrays.asList(this.description.split("[- ]")); // Splits description to words
         List<String> finalTagList = new ArrayList<>(); // Tracks the final list of tags
@@ -217,6 +219,7 @@ public class Item implements ItemInterface{
     /*
      * Cleans the word from any commas or other special characters
      */
+    @Override
     public String cleanWord(String word) {
 
         for (String character : this.specialCharacters) {
