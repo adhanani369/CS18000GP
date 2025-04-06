@@ -1,12 +1,21 @@
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Item implements ItemInterface {
+/*
+ * This is the item class where the user can create a items 
+ * which can put on the market and sold to other users.
+ * 
+ * @frahman284
+ * 
+ * April 5th, 2025
+ * 
+ */
+public class Item implements ItemInterface{
+
     private static int itemCount;
     private String itemId;
     private String sellerId;
@@ -19,6 +28,7 @@ public class Item implements ItemInterface {
     private int ratingCount;
     private boolean sold;
     private String buyerId;
+    private List<String> specialCharacters;
     
     /**
      * Creates a new item listing with the specified details.
@@ -30,20 +40,20 @@ public class Item implements ItemInterface {
         // Extract tags from description
         this.sellerId = sellerId;
         this.title = title;
-        this.description = description;
         this.category = category;
         this.price = price;
         this.sold = false;
         this.buyerId = null;
         this.ratingCount = 0;
         this.itemId = Integer.toString(++Item.itemCount);   
-        this.tags = this.getTags(this.getStopwords());
+        this.description = (description == null) ? ("") : (description);
+        this.tags = this.extractTags(this.getStopwords());
 
     }
     
     /**
      * Gets the item's unique identifier.
-     */
+     */ 
     @Override
     public String getItemId() {
         // Return itemId
@@ -120,16 +130,20 @@ public class Item implements ItemInterface {
     @Override
     public void updateRating(double newRating) {
         // Calculate new average rating
+        if (newRating > 5) {
+            System.out.println("Invalid Rating");
+            return;
+        }
         double currentRating = this.getRating(); // Tracks the current rating
-        double newAverageRating = (ratingCount * currentRating + newRating) / (++ratingCount); // Calculates the new rating
+        double newAverageRating = (ratingCount * currentRating + newRating) / (++this.ratingCount); // new rating
         this.rating = newAverageRating;
     }
     
     /**
      * Checks whether this item has been sold.
      */
-    @Override
-    public boolean isSold() {
+     @Override
+     public boolean isSold() {
         // Return sold status
         return this.sold;
     }
@@ -160,16 +174,11 @@ public class Item implements ItemInterface {
         // Return buyerId
         return this.buyerId;
     }
-
-    @Override
-    public List<String> extractTags() {
-        // Return tags
-        return tags;
-    } 
-
-    @Override
+    
+    /*
+     * Gets the stop words from reading the stopwords.txt file
+     */
     public List<String> getStopwords() {
-        System.out.println(new File(".").getAbsolutePath());
         try (BufferedReader br = new BufferedReader(new FileReader("stopword.txt"))) {
             String stopWordsRaw = br.readLine(); // Gets the uncleaned version of all the stop words
             return Arrays.asList(stopWordsRaw.split(",")); // Splits and returns an array containing the stop words
@@ -179,10 +188,12 @@ public class Item implements ItemInterface {
         }
     }
 
-    @Override
-    public List<String> getTags(List<String> stopwords) {
-        List<String> descriptionWords = Arrays.asList(this.description.split(" ")); // Splits the description to indivitual words
-        List<String> finalTagList = new ArrayList<>();
+    /*
+     * Extracts the tags from the description and cleans each word
+     */
+    public List<String> extractTags(List<String> stopwords) {
+        List<String> descriptionWords = Arrays.asList(this.description.split("[- ]")); // Splits description to words
+        List<String> finalTagList = new ArrayList<>(); // Tracks the final list of tags
         for (String word : descriptionWords) {
             if (stopwords.contains(word.toLowerCase()) == false) {
                 finalTagList.add(cleanWord(word));
@@ -192,24 +203,29 @@ public class Item implements ItemInterface {
     }
 
     /*
-     * Cleans the word from any commas or other special characters
+     * Gets the special characters from the specialCharacters.txt file
      */
-    @Override
-    public String cleanWord(String word) {
-        List<String> finalSpecialCharacters = null;
+    public void getSpecialCharacters() {
         try (BufferedReader br = new BufferedReader(new FileReader("special_characters.txt"))) {
             String characters = br.readLine(); // Gets the uncleaned version of all the stop words
-            finalSpecialCharacters = Arrays.asList(characters.split(" ")); // Splits and returns an array containing the special characters
+            this.specialCharacters = Arrays.asList(characters.split(" ")); // returns array with special characters
         } catch (IOException e) {
             e.printStackTrace();
-            return null;
         }
-        for (String character : finalSpecialCharacters) {
-            int count = word.indexOf(character);
-            if (count > 0) {
-                word = word.replaceAll("\\Q" + character + "\\E", "");
+    }
+
+    /*
+     * Cleans the word from any commas or other special characters
+     */
+    public String cleanWord(String word) {
+
+        for (String character : this.specialCharacters) {
+            int count = word.indexOf(character); // Tracks the index to see if the word contain special character
+            if (count != -1) {
+                word = word.replaceAll("\\".concat(character), "");
             }
         }
+        System.out.println(word);
         return word;
     }
 
