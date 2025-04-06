@@ -6,16 +6,6 @@ import java.util.List;
 import org.junit.Test;
 public class ItemTest {
     
-    // @Test
-    // public void getItemIdTest() {
-    //     Item item = new Item("3", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0);
-    //     Item item2 = new Item(null, null, null, null, 0);
-    //     Item item3 = new Item(null, null, null, null, 0);
-    //     Item item4 = new Item(null, null, null, null, 0);
-    //     assertEquals("1", item.getItemId());
-    //     assertEquals("3", item3.getItemId());
-    //     assertEquals("4", item4.getItemId());
-    // }
 
     /*
      * Checks if it returns the right sellerId
