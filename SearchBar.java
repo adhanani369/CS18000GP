@@ -45,54 +45,15 @@ public class SearchBar implements SearchBarInterface {
         // WE DONT NEED TO IMPLEMENT IT FOR THE START ONLY IF WE THINK THIS WILL WORK AND IS CUTE!!! EXTRA FEATURE TO MAKE THE PROJECT MORE REAL AND COMPLELLING!
         List<User> allUsers = database.getAllUsers();  
         List<User> matchedSellers = new ArrayList<>();
-        List<Integer> relevanceRateList = new ArrayList<>();
         String keyword = searchTerm.toLowerCase();
-        
-        // get matching seller list based on search word, description, tag
-        for (User user : allUsers) {
-            List<Item> itemListing = user.getActiveListings();
-            boolean ifMatch = false;
-            int relevanceRate  = 0;
-
-            for (Item item : itemListing) {
-                String title = item.getTitle().toLowerCase();
-                String description = item.getDescription().toLowerCase();
-                List<String> tags = item.getTags();
-
-                if (description.contains(keyword)) relevanceRate  += 1;
-                if (tags != null) {
-                    for (String tag : tags) {
-                        if (tag.toLowerCase().contains(keyword)) {
-                            relevanceRate  += 2;
-                        }
-                    }
-                }
-                if (title.contains(keyword)) relevanceRate  += 3;
-
-            }
-            if (relevanceRate  > 0) {
-                    matchedSellers.add(user);
-                    relevanceRateList.add(relevanceRate );
-                }
-        }
-        
-        // Sort the matched list based on their relevanceRate
-        for (int i = 0; i < matchedSellers.size() - 1; i++) {
-            for (int j = i + 1; j < matchedSellers.size(); j++) {
-                if (relevanceRateList.get(j) > relevanceRateList.get(i)) {
-                    // swap sellers
-                    User someone = matchedSellers.get(i);
-                    matchedSellers.set(i, matchedSellers.get(j));
-                    matchedSellers.set(j, someone);
     
-                    // swap relevanceRate
-                    int someRate = scores.get(i);
-                    scores.set(i, scores.get(j));
-                    scores.set(j, someRate);
-                }
+        for (User user : allUsers) {
+            // Check if the user's ID contains the search term
+            if (user.getUserId().toLowerCase().contains(keyword)) {
+                matchedSellers.add(user);
             }
         }
-
+    
         return matchedSellers;
     }
     
