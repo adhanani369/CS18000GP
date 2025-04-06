@@ -59,9 +59,7 @@ public class SearchBar implements SearchBarInterface {
                 String description = item.getDescription().toLowerCase();
                 List<String> tags = item.getTags();
 
-                if (title.contains(keyword)) relevanceRate  += 3;
                 if (description.contains(keyword)) relevanceRate  += 1;
-                
                 if (tags != null) {
                     for (String tag : tags) {
                         if (tag.toLowerCase().contains(keyword)) {
@@ -69,6 +67,8 @@ public class SearchBar implements SearchBarInterface {
                         }
                     }
                 }
+                if (title.contains(keyword)) relevanceRate  += 3;
+
             }
             if (relevanceRate  > 0) {
                     matchedSellers.add(user);
