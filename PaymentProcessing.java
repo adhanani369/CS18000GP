@@ -83,7 +83,6 @@ public class PaymentProcessing implements PaymentProcessingInterface {
                 item.markAsSold(buyerId);
                 seller.recordItemSold(item);
                 buyer.addToPurchaseHistory(item);
-
                 return true;
             }
         } catch (Exception e) {
