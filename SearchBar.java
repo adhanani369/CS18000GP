@@ -8,6 +8,7 @@ public class SearchBar implements SearchBarInterface {
      */
     public SearchBar(Database database) {
         // Store reference to database
+        this.database = database;
     }
 
     /**
@@ -21,7 +22,12 @@ public class SearchBar implements SearchBarInterface {
         // Get user from database by ID
         // Check if user has any active listings (is a seller)
         // Return user if they are a seller, otherwise null
-        return null;
+        User user = database.getUserById(userId); 
+        if (user = null || user.getListings().isEmpty()) {
+            System.out.println("User not find!");
+            return;
+        }
+        return user;
     }
 
     /**
@@ -37,6 +43,16 @@ public class SearchBar implements SearchBarInterface {
         // Filter by userID containing searchTerm
         // Return matching sellers
         // WE DONT NEED TO IMPLEMENT IT FOR THE START ONLY IF WE THINK THIS WILL WORK AND IS CUTE!!! EXTRA FEATURE TO MAKE THE PROJECT MORE REAL AND COMPLELLING!
+        List<User> allUsers = database.getAllUsers();  
+        List<User> matchedSellers = new ArrayList<>();
+    
+        for (User user : allUsers) {
+            if (!user.getListings().isEmpty() && user.getUserId().contains(searchTerm)) {
+                matchedSellers.add(user);
+            }
+    }
+
+    return matchedSellers;
         return null;
     }
     
@@ -51,6 +67,15 @@ public class SearchBar implements SearchBarInterface {
         // Filter for users that have at least one active listing
         // Return list of active sellers
         // we could use this to reduce burden on the database and faster the code if we want to make the code a little faster!! Again only a cute thing to have not necessary!
-        return null;
-    }
+       List<User> allUsers = database.getAllUsers();
+        List<User> activeSellers = new ArrayList<>();
+    
+        for (User user : allUsers) {
+            if (!user.getActiveListings().isEmpty()) {
+                activeSellers.add(user);
+            }
+        }
+    
+        return activeSellers;
+        }
 }
