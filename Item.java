@@ -175,6 +175,9 @@ public class Item implements ItemInterface{
         return this.buyerId;
     }
     
+    /*
+     * Gets the stop words from reading the stopwords.txt file
+     */
     public List<String> getStopwords() {
         try (BufferedReader br = new BufferedReader(new FileReader("stopword.txt"))) {
             String stopWordsRaw = br.readLine(); // Gets the uncleaned version of all the stop words
