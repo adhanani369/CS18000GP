@@ -1,14 +1,15 @@
 import java.util.List;
+import java.util.ArrayList;
 
 public class SearchBar implements SearchBarInterface {
     private Database database;
-    
+
     /**
      * Creates a new SearchBar instance for finding sellers.
      */
     public SearchBar(Database database) {
         // Store reference to database
-        this.database = database; 
+        this.database = database;
     }
 
     /**
@@ -22,10 +23,10 @@ public class SearchBar implements SearchBarInterface {
         // Get user from database by ID
         // Check if user has any active listings (is a seller)
         // Return user if they are a seller, otherwise null
-        User user = database.getUserById(userId); 
-        if (user = null || user.getListings().isEmpty()) {
+        User user = database.getUserById(userId);
+        if (user == null || user.getActiveListings().isEmpty()) {
             System.out.println("User not find!");
-            return;
+            return null;
         }
         return user;
     }
@@ -43,23 +44,23 @@ public class SearchBar implements SearchBarInterface {
         // Filter by userID containing searchTerm
         // Return matching sellers
         // WE DONT NEED TO IMPLEMENT IT FOR THE START ONLY IF WE THINK THIS WILL WORK AND IS CUTE!!! EXTRA FEATURE TO MAKE THE PROJECT MORE REAL AND COMPLELLING!
-        List<User> allUsers = database.getAllUsers();  
+        List<User> allUsers = database.getAllUsers();
         List<User> matchedSellers = new ArrayList<>();
         String keyword = searchTerm.toLowerCase();
-    
+
         for (User user : allUsers) {
             // Check if the user's ID contains the search term
             if (user.getUserId().toLowerCase().contains(keyword)) {
                 matchedSellers.add(user);
             }
         }
-    
+
         return matchedSellers;
     }
-    
+
     /**
      * Gets all active sellers in the marketplace.
-     * 
+     *
      * @return List of all users who have at least one active listing
      */
     @Override
@@ -76,7 +77,7 @@ public class SearchBar implements SearchBarInterface {
                 activeSellers.add(user);
             }
         }
-    
+
         return activeSellers;
-        }
+    }
 }
