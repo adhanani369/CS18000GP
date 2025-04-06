@@ -16,7 +16,6 @@ import java.util.List;
  */
 public class Item implements ItemInterface{
 
-    private static int itemCount;
     private String itemId;
     private String sellerId;
     private String title;
