@@ -1,12 +1,21 @@
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Item implements ItemInterface {
+/*
+ * This is the item class where the user can create a items 
+ * which can put on the market and sold to other users.
+ * 
+ * @frahman284
+ * 
+ * April 5th, 2025
+ * 
+ */
+public class Item implements ItemInterface{
+
     private static int itemCount;
     private String itemId;
     private String sellerId;
@@ -30,20 +39,20 @@ public class Item implements ItemInterface {
         // Extract tags from description
         this.sellerId = sellerId;
         this.title = title;
-        this.description = description;
         this.category = category;
         this.price = price;
         this.sold = false;
         this.buyerId = null;
         this.ratingCount = 0;
         this.itemId = Integer.toString(++Item.itemCount);   
-        this.tags = this.getTags(this.getStopwords());
+        this.description = (description == null) ? ("") : (description);
+        this.tags = this.extractTags(this.getStopwords());
 
     }
     
     /**
      * Gets the item's unique identifier.
-     */
+     */ 
     @Override
     public String getItemId() {
         // Return itemId
@@ -120,16 +129,20 @@ public class Item implements ItemInterface {
     @Override
     public void updateRating(double newRating) {
         // Calculate new average rating
+        if (newRating > 5) {
+            System.out.println("Invalid Rating");
+            return;
+        }
         double currentRating = this.getRating(); // Tracks the current rating
-        double newAverageRating = (ratingCount * currentRating + newRating) / (++ratingCount); // Calculates the new rating
+        double newAverageRating = (ratingCount * currentRating + newRating) / (++this.ratingCount); // Calculates the new rating
         this.rating = newAverageRating;
     }
     
     /**
      * Checks whether this item has been sold.
      */
-    @Override
-    public boolean isSold() {
+     @Override
+     public boolean isSold() {
         // Return sold status
         return this.sold;
     }
@@ -160,16 +173,8 @@ public class Item implements ItemInterface {
         // Return buyerId
         return this.buyerId;
     }
-
-    @Override
-    public List<String> extractTags() {
-        // Return tags
-        return tags;
-    } 
-
-    @Override
+    
     public List<String> getStopwords() {
-        System.out.println(new File(".").getAbsolutePath());
         try (BufferedReader br = new BufferedReader(new FileReader("stopword.txt"))) {
             String stopWordsRaw = br.readLine(); // Gets the uncleaned version of all the stop words
             return Arrays.asList(stopWordsRaw.split(",")); // Splits and returns an array containing the stop words
@@ -179,9 +184,10 @@ public class Item implements ItemInterface {
         }
     }
 
-    @Override
-    public List<String> getTags(List<String> stopwords) {
-        List<String> descriptionWords = Arrays.asList(this.description.split(" ")); // Splits the description to indivitual words
+
+    public List<String> extractTags(List<String> stopwords) {
+
+        List<String> descriptionWords = Arrays.asList(this.description.split("[- ]")); // Splits the description to indivitual words
         List<String> finalTagList = new ArrayList<>();
         for (String word : descriptionWords) {
             if (stopwords.contains(word.toLowerCase()) == false) {
@@ -194,9 +200,10 @@ public class Item implements ItemInterface {
     /*
      * Cleans the word from any commas or other special characters
      */
-    @Override
+    
     public String cleanWord(String word) {
         List<String> finalSpecialCharacters = null;
+        String newWord = word;
         try (BufferedReader br = new BufferedReader(new FileReader("special_characters.txt"))) {
             String characters = br.readLine(); // Gets the uncleaned version of all the stop words
             finalSpecialCharacters = Arrays.asList(characters.split(" ")); // Splits and returns an array containing the special characters
@@ -205,12 +212,13 @@ public class Item implements ItemInterface {
             return null;
         }
         for (String character : finalSpecialCharacters) {
-            int count = word.indexOf(character);
-            if (count > 0) {
-                word = word.replaceAll("\\Q" + character + "\\E", "");
+            int count = newWord.indexOf(character);
+            if (count != -1) {
+                newWord = newWord.replaceAll("\\".concat(character), "");
             }
         }
-        return word;
+        System.out.println(newWord);
+        return newWord;
     }
 
 }
