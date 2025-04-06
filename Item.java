@@ -16,7 +16,6 @@ import java.util.List;
  */
 public class Item implements ItemInterface{
 
-    private static int itemCount;
     private String itemId;
     private String sellerId;
     private String title;
@@ -45,7 +44,7 @@ public class Item implements ItemInterface{
         this.sold = false;
         this.buyerId = null;
         this.ratingCount = 0;
-        this.itemId = Integer.toString(++Item.itemCount);   
+        this.itemId = java.util.UUID.randomUUID().toString();   
         this.description = (description == null) ? ("") : (description);
         this.tags = this.extractTags(this.getStopwords());
 
