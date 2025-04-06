@@ -28,6 +28,7 @@ public class Item implements ItemInterface{
     private int ratingCount;
     private boolean sold;
     private String buyerId;
+    private List<String> specialCharacters;
     
     /**
      * Creates a new item listing with the specified details.
@@ -134,7 +135,7 @@ public class Item implements ItemInterface{
             return;
         }
         double currentRating = this.getRating(); // Tracks the current rating
-        double newAverageRating = (ratingCount * currentRating + newRating) / (++this.ratingCount); // Calculates the new rating
+        double newAverageRating = (ratingCount * currentRating + newRating) / (++this.ratingCount); // new rating
         this.rating = newAverageRating;
     }
     
@@ -184,11 +185,12 @@ public class Item implements ItemInterface{
         }
     }
 
-
+    /*
+     * Extracts the tags from the description and cleans each word
+     */
     public List<String> extractTags(List<String> stopwords) {
-
-        List<String> descriptionWords = Arrays.asList(this.description.split("[- ]")); // Splits the description to indivitual words
-        List<String> finalTagList = new ArrayList<>();
+        List<String> descriptionWords = Arrays.asList(this.description.split("[- ]")); // Splits description to words
+        List<String> finalTagList = new ArrayList<>(); // Tracks the final list of tags
         for (String word : descriptionWords) {
             if (stopwords.contains(word.toLowerCase()) == false) {
                 finalTagList.add(cleanWord(word));
@@ -198,27 +200,30 @@ public class Item implements ItemInterface{
     }
 
     /*
-     * Cleans the word from any commas or other special characters
+     * Gets the special characters from the specialCharacters.txt file
      */
-    
-    public String cleanWord(String word) {
-        List<String> finalSpecialCharacters = null;
-        String newWord = word;
+    public void getSpecialCharacters() {
         try (BufferedReader br = new BufferedReader(new FileReader("special_characters.txt"))) {
             String characters = br.readLine(); // Gets the uncleaned version of all the stop words
-            finalSpecialCharacters = Arrays.asList(characters.split(" ")); // Splits and returns an array containing the special characters
+            this.specialCharacters = Arrays.asList(characters.split(" ")); // returns array with special characters
         } catch (IOException e) {
             e.printStackTrace();
-            return null;
         }
-        for (String character : finalSpecialCharacters) {
-            int count = newWord.indexOf(character);
+    }
+
+    /*
+     * Cleans the word from any commas or other special characters
+     */
+    public String cleanWord(String word) {
+
+        for (String character : this.specialCharacters) {
+            int count = word.indexOf(character); // Tracks the index to see if the word contain special character
             if (count != -1) {
-                newWord = newWord.replaceAll("\\".concat(character), "");
+                word = word.replaceAll("\\".concat(character), "");
             }
         }
-        System.out.println(newWord);
-        return newWord;
+        System.out.println(word);
+        return word;
     }
 
 }
