@@ -25,11 +25,11 @@ public interface ItemInterface {
 
     String getBuyerId();
 
-    List<String> extractTags();
-
     List<String> getStopwords();
 
-    List<String> getTags(List<String> stopwords);
+    List<String> extractTags(List<String> stopwords);
+
+    void getSpecialCharacters();
 
     /*
      * Cleans the word from any commas or other special characters
