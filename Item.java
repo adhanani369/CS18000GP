@@ -45,7 +45,7 @@ public class Item implements ItemInterface{
         this.sold = false;
         this.buyerId = null;
         this.ratingCount = 0;
-        this.itemId = Integer.toString(++Item.itemCount);   
+        this.itemId = java.util.UUID.randomUUID().toString();   
         this.description = (description == null) ? ("") : (description);
         this.tags = this.extractTags(this.getStopwords());
 
