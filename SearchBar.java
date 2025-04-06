@@ -8,7 +8,7 @@ public class SearchBar implements SearchBarInterface {
      */
     public SearchBar(Database database) {
         // Store reference to database
-        this.database = database;
+        this.database = database; 
     }
 
     /**
