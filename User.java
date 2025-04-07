@@ -2,7 +2,11 @@ import javax.xml.crypto.Data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
+/**
+ * User class for creating user instances.
+ * @author Rayaan Grewal
+ * @version April 6th, 2024
+ */
 public class User implements UserInterface {
     private String userId;
     private String username;
