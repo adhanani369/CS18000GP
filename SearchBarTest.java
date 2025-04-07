@@ -6,7 +6,7 @@ import org.junit.Test;
 
 public class SearchBarTest {
 
-    /*
+     /*
      * Find seller by valid user id
      * expect return: user
      */
@@ -14,15 +14,15 @@ public class SearchBarTest {
     public void testFindSellerById_ValidUserId() {
         Database db = new Database();
         SearchBar searchBar = new SearchBar(db);
-        String validUserId = "d8bb19d1-d5e5-4a32-9e0d-68248fefdd3d";
-        String username1 = "d8bb19d1-d5e5-4a32-9e0d-68248fefdd3d";
 
-        User user = new User(username1, "pass1", "bio1", db);
+        User user = new User("username1", "pass1", "bio1", db);
+        String validUserId = user.getUserId();
         user.addListing(new Item("3", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0));
 
         assertNotNull(user);
         assertEquals(user, searchBar.findSellerById(validUserId));
     }
+
 
     /*
      * Find seller by invalid user id because the user have no active listings
