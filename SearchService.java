@@ -5,6 +5,8 @@ import java.util.List;
  * The SearchService class provides methods for searching items in the database.
  * Items are ranked by a score computed from keyword matches in the title,
  * description, and tags.
+ * @author Rayaan Grewal
+ * @version April 6th, 2024
  */
 public class SearchService {
     private Database db;
