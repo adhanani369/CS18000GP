@@ -11,12 +11,12 @@ import java.io.IOException;
  */
 
 public class PaymentProcessing implements PaymentProcessingInterface {
-    private Database database;
+    private DatabaseInterface database;
     
     /**
      * Creates a new PaymentProcessing instance.
      */
-    public PaymentProcessing(Database database) {
+    public PaymentProcessing(DatabaseInterface database) {
         // Store reference to database
         this.database = database;
     }
@@ -30,7 +30,7 @@ public class PaymentProcessing implements PaymentProcessingInterface {
         // Call user.depositFunds()
         // Return success/failure
         try {
-            User user = database.getUserById(userId);
+            UserInterface user = database.getUserById(userId);
             user.depositFunds(amount);
             return true;
         } catch (Exception e) {
@@ -48,7 +48,7 @@ public class PaymentProcessing implements PaymentProcessingInterface {
         // Call user.withdrawFunds()
         // Return success/failure
         try {
-            User user = database.getUserById(userId);
+            UserInterface user = database.getUserById(userId);
             return user.withdrawFunds(amount);
         } catch (Exception e) {
             e.printStackTrace();
@@ -69,9 +69,9 @@ public class PaymentProcessing implements PaymentProcessingInterface {
         // Update purchase/sale records
         // Return success/failure
         try {
-            User buyer = database.getUserById(buyerId);
-            Item item = database.getItemById(itemId);
-            User seller = database.getUserById(item.getSellerId());
+            UserInterface buyer = database.getUserById(buyerId);
+            ItemInterface item = database.getItemById(itemId);
+            UserInterface seller = database.getUserById(item.getSellerId());
             if (buyer == null || item == null || seller == null) {
                 return false;
             }
@@ -81,8 +81,9 @@ public class PaymentProcessing implements PaymentProcessingInterface {
                 buyer.withdrawFunds(price);
                 seller.depositFunds(price);
                 item.markAsSold(buyerId);
-                seller.recordItemSold(item);
-                buyer.addToPurchaseHistory(item);
+                //TODO avoid casting, change return types to interface
+                seller.recordItemSold((Item) item);
+                buyer.addToPurchaseHistory((Item) item);
                 return true;
             }
         } catch (Exception e) {

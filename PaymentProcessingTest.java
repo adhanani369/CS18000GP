@@ -18,7 +18,7 @@ public class PaymentProcessingTest {
 
         db.addUser("username", "pass", "bio");
 
-        User user = db.getUserByUsername("username");
+        UserInterface user = db.getUserByUsername("username");
 
         user.depositFunds(initialBalance);
 

@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Database {
+public class Database implements DatabaseInterface {
     private Map<String, User> usersByUsername;
     private Map<String, User> usersById;
     private Map<String, Item> items;
