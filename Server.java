@@ -205,7 +205,7 @@ public class Server {
             System.out.println("Processing registration for user: " + username);
 
             // Simulate registration success (this would actually call database methods) 
-            boolean success = database.addUser(username, password, bio);
+            boolean success = database.addUser(username, password, bio); // Determines success of request
 
             return "REGISTER," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -223,7 +223,7 @@ public class Server {
             System.out.println("Processing login for user: " + username);
 
             // Simulate login success (this would actually call database methods)
-            boolean success = database.login(username + "," + password);
+            boolean success = database.login(username + "," + password); // Determines success of request
             String userId = "user_" + System.currentTimeMillis();
 
             return "LOGIN," + (success ? "SUCCESS," + userId : "FAILURE");
@@ -241,7 +241,7 @@ public class Server {
             System.out.println("Processing account deletion for user: " + username);
 
             // Simulate deletion success (this would actually call database methods)
-            boolean success = true;
+            boolean success = true; // Determines success of request
 
             return "DELETE_ACCOUNT," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -268,7 +268,8 @@ public class Server {
             System.out.println("Processing add item: " + title + " by seller " + sellerId);
 
             // Simulate adding item (this would actually call database methods)
-            boolean success = database.addItem(new Item(sellerId, title, description, category, price));
+            boolean success; //success of request
+            success = database.addItem(new Item(sellerId, title, description, category, price)); 
             String itemId = "item_" + System.currentTimeMillis();
 
             return "ADD_ITEM," + (success ? "SUCCESS," + itemId : "FAILURE");
@@ -287,7 +288,7 @@ public class Server {
 
             // Simulate getting item (this would actually call database methods)
             Item item = database.getItemById(itemId);
-            boolean success = true;
+            boolean success = true; // Determines success of request
             if (item == null) {
                success = false; 
             }
@@ -341,7 +342,7 @@ public class Server {
             StringBuilder response = new StringBuilder("SEARCH_ITEMS,SUCCESS," + results.size());
 
             // Add mock results
-            for (Item item : matchedItems) {
+            for (Item item : results) {
                 response.append(",item123,"+ item.getItemId() + "," + item.getTitle());
             }
             return response.toString();
@@ -365,7 +366,7 @@ public class Server {
             if (item == null) {
                 return "MARK_SOLD,FAILURE,Item not found";
             }
-            boolean success = item.markAsSold(buyerId);
+            boolean success = item.markAsSold(buyerId); // Determines success of request
 
             // neccessary?
             if (success) {
@@ -388,7 +389,7 @@ public class Server {
             System.out.println("Processing remove item: " + itemId + " by seller " + sellerId);
 
             // Simulate removing item (this would actually call database methods)
-            boolean success = database.removeItem(itemId, sellerId);
+            boolean success = database.removeItem(itemId, sellerId); // Determines success of request
             
             if (success) {
                 database.writeItemFile();
@@ -413,7 +414,7 @@ public class Server {
 
             // Simulate sending message (this would actually call database methods)
             Message message = new Message(senderId, receiverId, content);
-            boolean success = database.addMessage(message);
+            boolean success = database.addMessage(message); // Determines success of request
 
             return "SEND_MESSAGE," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -432,7 +433,7 @@ public class Server {
 
             // Simulate getting messages (this would actually call database methods)
             // Return: GET_MESSAGES,SUCCESS,count,messageId1,senderId1,receiverId1,timestamp1,content1,...
-            List<Message> messages = database.getMessagesBetweenUsers(user1Id, user2Id);
+            List<Message> messages = database.getMessagesBetweenUsers(buyerId, sellerId);
             if (messages == null || messages.isEmpty()) {
                 return "GET_MESSAGES,SUCCESS,0";
             }
@@ -461,9 +462,7 @@ public class Server {
             // Return: GET_CONVERSATIONS,SUCCESS,count,userId1,username1,userId2,username2,...
             StringBuilder response = new StringBuilder("GET_CONVERSATIONS,SUCCESS,2");
 
-            // Add mock conversations
-            response.append(",user456,John Doe");
-            response.append(",user789,Jane Smith");
+            response.append("," + userId + "," + database.getUserById(userId).getUsername());
 
             return response.toString();
         }
@@ -486,8 +485,17 @@ public class Server {
 
             System.out.println("Processing add funds: $" + amount + " to user " + userId);
 
-            // Simulate adding funds (this would actually call database methods)
-            boolean success = true;
+            User currentUser = database.getUserById(userId);
+            boolean success = true; // Determines success of request
+            if (currentUser == null) {
+                success = false;
+            } else {
+                currentUser.depositFunds(amount);
+            }
+
+            if (success) {
+                database.writeItemFile();
+            }
 
             return "ADD_FUNDS," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -511,7 +519,18 @@ public class Server {
             System.out.println("Processing withdraw funds: $" + amount + " from user " + userId);
 
             // Simulate withdrawing funds (this would actually call database methods)
-            boolean success = true;
+            boolean success = true; // Determines success of request 
+            User currentUser = database.getUserById(userId); // Tracks the current user
+
+            if (currentUser == null) {
+                success = false;
+            } else {
+                success = currentUser.withdrawFunds(amount);
+            }
+
+            if (success) {
+                database.writeItemFile();
+            }
 
             return "WITHDRAW_FUNDS," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -529,7 +548,31 @@ public class Server {
             System.out.println("Processing purchase of item " + itemId + " by buyer " + buyerId);
 
             // Simulate processing purchase (this would actually call database methods)
-            boolean success = true;
+            boolean success = true; // Determines success of request
+            User buyer = database.getUserById(buyerId);  // Tracks the buyer
+            Item item = database.getItemById(itemId); // Tracks the item
+            if ((item == null)  || (item.isSold())) {
+                success = false;
+                return "PROCESS_PURCHASE," + (success ? "SUCCESS" : "FAILURE");
+            }
+            User seller = database.getUserById(item.getSellerId()); // Tracks the user
+            if ((buyerId == null) || (buyer.equals(seller))) {
+                success = false;
+            } else {
+                double itemCost = item.getPrice(); // Tracks the item cost
+                if (!buyer.withdrawFunds(itemCost)) {
+                    success = false;
+                    return "PROCESS_PURCHASE," + (success ? "SUCCESS" : "FAILURE");
+                }
+                seller.depositFunds(itemCost);
+                seller.removeListing(itemId);
+                buyer.addToPurchaseHistory(item);
+                item.markAsSold(buyerId);
+            }
+
+            if (success) {
+                database.writeItemFile();
+            }
 
             return "PROCESS_PURCHASE," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -553,7 +596,7 @@ public class Server {
             System.out.println("Processing seller rating: " + rating + " for seller " + sellerId);
 
             // Simulate rating seller (this would actually call database methods)
-            boolean success = true;
+            boolean success = true; // Determines success of request
 
             return "RATE_SELLER," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -570,7 +613,7 @@ public class Server {
             System.out.println("Processing get rating for seller " + sellerId);
 
             // Simulate getting rating (this would actually call database methods)
-            boolean success = true;
+            boolean success = true; // Determines success of request
             double rating = 4.5;
 
             if (success) {
