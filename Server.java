@@ -11,6 +11,7 @@ public class Server {
     private final int PORT = 1234;
     private boolean running;
     private List<ClientHandler> clientHandlers;
+    private Database database;
 
     /**
      * Creates a new server instance
@@ -26,6 +27,7 @@ public class Server {
      */
     public void startServer() {
         try {
+            this.database = new Database();
             serverSocket = new ServerSocket(PORT);
             running = true;
             System.out.println("Server started on port " + PORT);
@@ -202,8 +204,8 @@ public class Server {
 
             System.out.println("Processing registration for user: " + username);
 
-            // Simulate registration success (this would actually call database methods)
-            boolean success = true;
+            // Simulate registration success (this would actually call database methods) 
+            boolean success = database.addUser(username, password, bio);
 
             return "REGISTER," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -221,7 +223,7 @@ public class Server {
             System.out.println("Processing login for user: " + username);
 
             // Simulate login success (this would actually call database methods)
-            boolean success = true;
+            boolean success = database.login(username + "," + password);
             String userId = "user_" + System.currentTimeMillis();
 
             return "LOGIN," + (success ? "SUCCESS," + userId : "FAILURE");
@@ -266,7 +268,7 @@ public class Server {
             System.out.println("Processing add item: " + title + " by seller " + sellerId);
 
             // Simulate adding item (this would actually call database methods)
-            boolean success = true;
+            boolean success = database.addItem(new Item(sellerId, title, description, category, price));
             String itemId = "item_" + System.currentTimeMillis();
 
             return "ADD_ITEM," + (success ? "SUCCESS," + itemId : "FAILURE");
@@ -284,16 +286,20 @@ public class Server {
             System.out.println("Processing get item: " + itemId);
 
             // Simulate getting item (this would actually call database methods)
+            Item item = database.getItemById(itemId);
             boolean success = true;
+            if (item == null) {
+               success = false; 
+            }
 
             if (success) {
                 // Return item details (would be from database)
-                String sellerId = "seller123";
-                String title = "Test Item";
-                String description = "This is a test item";
-                String category = "Electronics";
-                double price = 99.99;
-                boolean sold = false;
+                String sellerId = item.getSellerId();
+                String title = item.getTitle();
+                String description = item.getDescription();
+                String category = item.getCategory();
+                double price = item.getPrice();
+                boolean sold = item.isSold();
 
                 return "GET_ITEM,SUCCESS," + itemId + "," + sellerId + "," +
                         title + "," + description + "," + category + "," +
