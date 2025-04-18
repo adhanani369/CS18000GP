@@ -318,18 +318,32 @@ public class Server {
 
             String query = parts[1];
             String category = parts.length > 2 ? parts[2] : null;
-            int maxResults = parts.length > 3 ? Integer.parseInt(parts[3]) : 10;
+            int maxResults = 10;
+
+            // In case of unexpect input 
+            if (parts.length > 3) {
+                try {
+                    maxResults = Integer.parseInt(parts[3]);
+                } catch (NumberFormatException e) {
+                    return "SEARCH_ITEMS,FAILURE,Invalid maxResults";
+                }
+            }
 
             System.out.println("Processing search: " + query + ", category: " + category);
 
             // Simulate search results (this would actually call database methods)
             // Return: SEARCH_ITEMS,SUCCESS,count,itemId1,title1,itemId2,title2,...
-            StringBuilder response = new StringBuilder("SEARCH_ITEMS,SUCCESS,2");
+
+
+            SearchService searchService = new SearchService(database);
+            List<Item> results = searchService.search(query, category, maxResults);
+            
+            StringBuilder response = new StringBuilder("SEARCH_ITEMS,SUCCESS," + results.size());
 
             // Add mock results
-            response.append(",item123,Test Item 1");
-            response.append(",item456,Test Item 2");
-
+            for (Item item : matchedItems) {
+                response.append(",item123,"+ item.getItemId() + "," + item.getTitle());
+            }
             return response.toString();
         }
 
@@ -346,7 +360,17 @@ public class Server {
             System.out.println("Processing mark sold: item " + itemId + " to buyer " + buyerId);
 
             // Simulate marking as sold (this would actually call database methods)
-            boolean success = true;
+
+            Item item = database.getItemById(itemId);
+            if (item == null) {
+                return "MARK_SOLD,FAILURE,Item not found";
+            }
+            boolean success = item.markAsSold(buyerId);
+
+            // neccessary?
+            if (success) {
+                database.writeItemFile();  
+            }
 
             return "MARK_SOLD," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -364,7 +388,11 @@ public class Server {
             System.out.println("Processing remove item: " + itemId + " by seller " + sellerId);
 
             // Simulate removing item (this would actually call database methods)
-            boolean success = true;
+            boolean success = database.removeItem(itemId, sellerId);
+            
+            if (success) {
+                database.writeItemFile();
+            }
 
             return "REMOVE_ITEM," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -384,7 +412,8 @@ public class Server {
             System.out.println("Processing message from " + senderId + " to " + receiverId);
 
             // Simulate sending message (this would actually call database methods)
-            boolean success = true;
+            Message message = new Message(senderId, receiverId, content);
+            boolean success = database.addMessage(message);
 
             return "SEND_MESSAGE," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -403,12 +432,17 @@ public class Server {
 
             // Simulate getting messages (this would actually call database methods)
             // Return: GET_MESSAGES,SUCCESS,count,messageId1,senderId1,receiverId1,timestamp1,content1,...
-            StringBuilder response = new StringBuilder("GET_MESSAGES,SUCCESS,2");
+            List<Message> messages = database.getMessagesBetweenUsers(user1Id, user2Id);
+            if (messages == null || messages.isEmpty()) {
+                return "GET_MESSAGES,SUCCESS,0";
+            }
+            StringBuilder response = new StringBuilder("GET_MESSAGES,SUCCESS,messages.size()");
 
             // Add mock messages
-            response.append(",msg123," + buyerId + "," + sellerId + ",1617293847,Hello there!");
-            response.append(",msg456," + sellerId + "," + buyerId + ",1617293947,Hi, how can I help?");
-
+             for (Message message : messages){
+                response.append(message.getMessageId() + "," + message.getSenderId() + "," 
+                                + message.getReceiverId() + "," + message.getTimestamp() + "," + message.getContent());
+            }
             return response.toString();
         }
 
