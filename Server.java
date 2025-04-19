@@ -611,9 +611,24 @@ public class Server {
             System.out.println("Processing seller rating: " + rating + " for seller " + sellerId);
 
             // Simulate rating seller (this would actually call database methods)
-            boolean success = true; // Determines success of request
+            User seller = database.getUserById(sellerId);
+            if (seller == null) {
+                return "RATE_SELLER,FAILURE,Seller not found";
+            }
+        
+            List<Item> soldItems = seller.getSoldItems();
+            if (soldItems == null || soldItems.isEmpty()) {
+                return "RATE_SELLER,FAILURE,No sold items to rate";
+            }
 
-            return "RATE_SELLER," + (success ? "SUCCESS" : "FAILURE");
+            for (Item item : soldItems) {
+                if (item.getRating() == 0.0) {
+                    item.updateRating(rating);
+                    return "RATE_SELLER,SUCCESS";
+                }
+            }
+            
+            return "RATE_SELLER,FAILURE,All items already rated";
         }
 
 
@@ -628,14 +643,29 @@ public class Server {
             System.out.println("Processing get rating for seller " + sellerId);
 
             // Simulate getting rating (this would actually call database methods)
-            boolean success = true; // Determines success of request
-            double rating = 4.5;
-
-            if (success) {
-                return "GET_RATING,SUCCESS," + rating;
-            } else {
+            User seller = database.getUserById(sellerId);
+            List<Item> soldItems = seller.getSoldItems();
+            double sellerRating = 0.0;
+        
+            if (seller == null) {
                 return "GET_RATING,FAILURE,Seller not found";
             }
+            
+            if (soldItems == null || soldItems.isEmpty()) {
+                return "GET_RATING,SUCCESS," + sellerRating; 
+            }
+
+            int numOfRating = 0;
+            for (Item item : soldItems) {
+                double itemRating = item.getRating();
+                if (itemRating > 0.0) {
+                    sellerRating += itemRating;
+                    numOfRating++;
+                }
+            }
+            
+            double averageRating = numOfRating > 0 ? sellerRating / numOfRating : 0.0;
+            return "GET_RATING,SUCCESS," + averageRating;
         }
 
         /**
