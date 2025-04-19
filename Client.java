@@ -1,6 +1,6 @@
 import java.io.*;
 import java.net.*;
-
+import java.util.*;
 
 public class Client {
     private Socket socket;
@@ -189,55 +189,106 @@ public class Client {
 
     public static void main(String[] args) {
         Client client = new Client();
-
-        try {
-            // Test connection
-            if (!client.connect()) {
-                System.out.println("Failed to connect to server. Exiting.");
-                return;
+        if (!client.connect()) return;
+        Scanner sc = new Scanner(System.in);
+        boolean running = true;
+        while (running) {
+            System.out.println("\nMenu:\n1 Register\n2 Login\n3 List All Items\n4 Search Items\n5 Add Item\n6 Buy Item\n7 Send Message\n8 View Messages\n9 Add Funds\n10 Withdraw Funds\n11 Rate Seller\n12 Logout\n0 Exit");
+            System.out.print("Choice: ");
+            String choice = sc.nextLine();
+            switch (choice) {
+                case "1":
+                    System.out.print("Username: ");
+                    String u = sc.nextLine();
+                    System.out.print("Password: ");
+                    String p = sc.nextLine();
+                    System.out.print("Bio: ");
+                    String b = sc.nextLine();
+                    System.out.println(client.register(u, p, b));
+                    break;
+                case "2":
+                    System.out.print("Username: ");
+                    String lu = sc.nextLine();
+                    System.out.print("Password: ");
+                    String lp = sc.nextLine();
+                    System.out.println(client.login(lu, lp));
+                    break;
+                case "3":
+                    System.out.println(client.searchItems("", "", 100));
+                    break;
+                case "4":
+                    System.out.print("Query: ");
+                    String q = sc.nextLine();
+                    System.out.print("Category: ");
+                    String cat = sc.nextLine();
+                    System.out.print("Max results: ");
+                    int mr = Integer.parseInt(sc.nextLine());
+                    System.out.println(client.searchItems(q, cat, mr));
+                    break;
+                case "5":
+                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
+                    System.out.print("Title: ");
+                    String t = sc.nextLine();
+                    System.out.print("Description: ");
+                    String d = sc.nextLine();
+                    System.out.print("Category: ");
+                    String c = sc.nextLine();
+                    System.out.print("Price: ");
+                    double pr = Double.parseDouble(sc.nextLine());
+                    System.out.println(client.addItem(client.getCurrentUserId(), t, d, c, pr));
+                    break;
+                case "6":
+                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
+                    System.out.print("Item ID: ");
+                    String iid = sc.nextLine();
+                    System.out.println(client.processPurchase(client.getCurrentUserId(), iid));
+                    break;
+                case "7":
+                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
+                    System.out.print("Receiver ID: ");
+                    String rid = sc.nextLine();
+                    System.out.print("Content: ");
+                    String cont = sc.nextLine();
+                    System.out.print("Item ID: ");
+                    String itid = sc.nextLine();
+                    System.out.println(client.sendMessageToUser(client.getCurrentUserId(), rid, cont, itid));
+                    break;
+                case "8":
+                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
+                    System.out.print("Other User ID: ");
+                    String ou = sc.nextLine();
+                    System.out.println(client.getMessages(client.getCurrentUserId(), ou));
+                    break;
+                case "9":
+                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
+                    System.out.print("Amount: ");
+                    double af = Double.parseDouble(sc.nextLine());
+                    System.out.println(client.addFunds(client.getCurrentUserId(), af));
+                    break;
+                case "10":
+                    if (client.getCurrentUserId() == null) { System.out.println("Login first"); break; }
+                    System.out.print("Amount: ");
+                    double wf = Double.parseDouble(sc.nextLine());
+                    System.out.println(client.withdrawFunds(client.getCurrentUserId(), wf));
+                    break;
+                case "11":
+                    System.out.print("Seller ID: ");
+                    String sid = sc.nextLine();
+                    System.out.print("Rating: ");
+                    double rt = Double.parseDouble(sc.nextLine());
+                    System.out.println(client.rateSeller(sid, rt));
+                    break;
+                case "12":
+                    client.setCurrentUserId(null);
+                    break;
+                case "0":
+                    running = false;
+                    break;
+                default:
+                    System.out.println("Invalid choice");
             }
-
-            // Test registration
-            String registerResponse = client.register("testuser", "password123", "This is a test user");
-            System.out.println("Register response: " + registerResponse);
-
-            // Test login
-            String loginResponse = client.login("testuser", "password123");
-            System.out.println("Login response: " + loginResponse);
-
-            // Test adding an item
-            String userId = client.getCurrentUserId();
-            if (userId != null) {
-                String addItemResponse = client.addItem(userId, "Test Item", "This is a test item", "Electronics", 99.99);
-                System.out.println("Add item response: " + addItemResponse);
-
-                // Extract item ID if successful
-                String itemId = null;
-                String[] addItemParts = addItemResponse.split(",");
-                if (addItemParts.length >= 3 && addItemParts[1].equals("SUCCESS")) {
-                    itemId = addItemParts[2];
-
-                    // Test getting item
-                    String getItemResponse = client.getItem(itemId);
-                    System.out.println("Get item response: " + getItemResponse);
-
-                    // Test processing purchase
-                    String purchaseResponse = client.processPurchase(userId, itemId);
-                    System.out.println("Purchase response: " + purchaseResponse);
-                }
-            }
-
-            // Test searching for items
-            String searchResponse = client.searchItems("Test", "Electronics", 10);
-            System.out.println("Search response: " + searchResponse);
-
-            // Disconnect from server
-            client.disconnect();
-
-        } catch (Exception e) {
-            System.out.println("Error during test: " + e.getMessage());
-            e.printStackTrace();
-            client.disconnect();
         }
+        client.disconnect();
+        sc.close();
     }
 }
