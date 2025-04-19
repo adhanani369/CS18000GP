@@ -460,10 +460,25 @@ public class Server {
 
             // Simulate getting conversations (this would actually call database methods)
             // Return: GET_CONVERSATIONS,SUCCESS,count,userId1,username1,userId2,username2,...
-            StringBuilder response = new StringBuilder("GET_CONVERSATIONS,SUCCESS,2");
+            List<Message> allMessages = database.getMessagesBetweenUsers(userId, null);
+            Set<String> conversation = new HashSet<>();
 
-            response.append("," + userId + "," + database.getUserById(userId).getUsername());
+            for (Message message : allMessages) {
+                String otherId = message.getSenderId().equals(userId) ? message.getReceiverId() : message.getSenderId();
+                if (!otherId.equals(userId)) {
+                    conversation.add(otherId);
+                }
+            }
 
+            StringBuilder response = new StringBuilder("GET_CONVERSATIONS,SUCCESS," + conversation.size());
+
+            for (String partnerId : conversation) {
+                User partner = database.getUserById(partnerId);
+                if (partner != null) {
+                    response.append("," + partnerId + "," + partner.getUsername());
+                }
+            }
+    
             return response.toString();
         }
 
