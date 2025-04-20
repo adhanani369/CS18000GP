@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+
 public class Client {
     private Socket socket;
     private BufferedReader reader;
@@ -66,9 +67,20 @@ public class Client {
             String response = reader.readLine();
             System.out.println("Received: " + response);
 
+            if (response == null) {
+                System.out.println("ERROR: Received null response from server");
+                // Check if connection is still alive
+                if (socket != null && !socket.isClosed()) {
+                    System.out.println("Socket is still connected");
+                } else {
+                    System.out.println("Socket connection is closed");
+                }
+            }
+
             return response;
         } catch (IOException e) {
             System.out.println("Communication error: " + e.getMessage());
+            e.printStackTrace(); // Add stack trace for better debugging
             return "ERROR,Communication failure";
         }
     }
@@ -94,9 +106,9 @@ public class Client {
         return response;
     }
 
-    public String deleteAccount(String username) {
-        System.out.println("Deleting account: " + username);
-        String message = "DELETE_ACCOUNT," + username;
+    public String deleteAccount(String userId) {
+        System.out.println("Deleting account: " + userId);
+        String message = "DELETE_ACCOUNT," + userId;
         return sendMessage(message);
     }
 
@@ -115,6 +127,12 @@ public class Client {
     public String searchItems(String query, String category, int maxResults) {
         System.out.println("Searching for items: " + query);
         String message = "SEARCH_ITEMS," + query + "," + (category == null ? "" : category) + "," + maxResults;
+        return sendMessage(message);
+    }
+
+    public String getUserListings(String userId, boolean activeOnly) {
+        System.out.println("Getting " + (activeOnly ? "active" : "all") + " listings for user: " + userId);
+        String message = "GET_USER_LISTINGS," + userId + "," + activeOnly;
         return sendMessage(message);
     }
 
@@ -178,6 +196,18 @@ public class Client {
         return sendMessage(message);
     }
 
+    public String getAllUsers() {
+        System.out.println("Getting all users");
+        String message = "GET_ALL_USERS";
+        return sendMessage(message);
+    }
+
+    public String getActiveSellers() {
+        System.out.println("Getting all active sellers");
+        String message = "GET_ACTIVE_SELLERS";
+        return sendMessage(message);
+    }
+
     public String getCurrentUserId() {
         return currentUserId;
     }
@@ -186,109 +216,474 @@ public class Client {
         this.currentUserId = userId;
     }
 
+    public String getMyRating(String userId) {
+        System.out.println("Getting my rating: " + userId);
+        String message = "GET_MY_RATING," + userId;
+        return sendMessage(message);
+    }
+
+
 
     public static void main(String[] args) {
         Client client = new Client();
         if (!client.connect()) return;
         Scanner sc = new Scanner(System.in);
         boolean running = true;
+
         while (running) {
-            System.out.println("\nMenu:\n1 Register\n2 Login\n3 List All Items\n4 Search Items\n5 Add Item\n6 Buy Item\n7 Send Message\n8 View Messages\n9 Add Funds\n10 Withdraw Funds\n11 Rate Seller\n12 Logout\n0 Exit");
+            System.out.println("\nMenu:");
+            System.out.println("1 Register");
+            System.out.println("2 Login");
+            System.out.println("3 List All Items & Buy");
+            System.out.println("4 Search Items");
+            System.out.println("5 Add Item");
+            System.out.println("6 Send Message");
+            System.out.println("7 View Messages");
+            System.out.println("8 Add Funds");
+            System.out.println("9 Withdraw Funds");
+            System.out.println("10 View Balance");
+            System.out.println("11 Rate Seller");
+            System.out.println("12 View My Listings");
+            System.out.println("13 View My Rating");
+            System.out.println("14 Delete My Account");
+            System.out.println("15 Logout");
+            System.out.println("0 Exit");
             System.out.print("Choice: ");
-            String choice = sc.nextLine();
-            switch (choice) {
-                case "1":
-                    System.out.print("Username: ");
-                    String u = sc.nextLine();
-                    System.out.print("Password: ");
-                    String p = sc.nextLine();
-                    System.out.print("Bio: ");
-                    String b = sc.nextLine();
-                    System.out.println(client.register(u, p, b));
-                    break;
-                case "2":
-                    System.out.print("Username: ");
-                    String lu = sc.nextLine();
-                    System.out.print("Password: ");
-                    String lp = sc.nextLine();
-                    System.out.println(client.login(lu, lp));
-                    break;
-                case "3":
-                    System.out.println(client.searchItems("", "", 100));
-                    break;
-                case "4":
-                    System.out.print("Query: ");
-                    String q = sc.nextLine();
-                    System.out.print("Category: ");
-                    String cat = sc.nextLine();
-                    System.out.print("Max results: ");
-                    int mr = Integer.parseInt(sc.nextLine());
-                    System.out.println(client.searchItems(q, cat, mr));
-                    break;
-                case "5":
-                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
-                    System.out.print("Title: ");
-                    String t = sc.nextLine();
-                    System.out.print("Description: ");
-                    String d = sc.nextLine();
-                    System.out.print("Category: ");
-                    String c = sc.nextLine();
-                    System.out.print("Price: ");
-                    double pr = Double.parseDouble(sc.nextLine());
-                    System.out.println(client.addItem(client.getCurrentUserId(), t, d, c, pr));
-                    break;
-                case "6":
-                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
-                    System.out.print("Item ID: ");
-                    String iid = sc.nextLine();
-                    System.out.println(client.processPurchase(client.getCurrentUserId(), iid));
-                    break;
-                case "7":
-                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
-                    System.out.print("Receiver ID: ");
-                    String rid = sc.nextLine();
-                    System.out.print("Content: ");
-                    String cont = sc.nextLine();
-                    System.out.print("Item ID: ");
-                    String itid = sc.nextLine();
-                    System.out.println(client.sendMessageToUser(client.getCurrentUserId(), rid, cont, itid));
-                    break;
-                case "8":
-                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
-                    System.out.print("Other User ID: ");
-                    String ou = sc.nextLine();
-                    System.out.println(client.getMessages(client.getCurrentUserId(), ou));
-                    break;
-                case "9":
-                    if (client.getCurrentUserId() == null) { System.out.println("Please login !"); break; }
-                    System.out.print("Amount: ");
-                    double af = Double.parseDouble(sc.nextLine());
-                    System.out.println(client.addFunds(client.getCurrentUserId(), af));
-                    break;
-                case "10":
-                    if (client.getCurrentUserId() == null) { System.out.println("Login first"); break; }
-                    System.out.print("Amount: ");
-                    double wf = Double.parseDouble(sc.nextLine());
-                    System.out.println(client.withdrawFunds(client.getCurrentUserId(), wf));
-                    break;
-                case "11":
-                    System.out.print("Seller ID: ");
-                    String sid = sc.nextLine();
-                    System.out.print("Rating: ");
-                    double rt = Double.parseDouble(sc.nextLine());
-                    System.out.println(client.rateSeller(sid, rt));
-                    break;
-                case "12":
-                    client.setCurrentUserId(null);
-                    break;
-                case "0":
-                    running = false;
-                    break;
-                default:
-                    System.out.println("Invalid choice");
+
+            String choice = sc.nextLine().trim();
+            try {
+                switch (choice) {
+                    case "1":
+                        System.out.print("Username: ");
+                        String u = sc.nextLine();
+                        System.out.print("Password: ");
+                        String p = sc.nextLine();
+                        System.out.print("Bio: ");
+                        String b = sc.nextLine();
+                        System.out.println(client.register(u, p, b));
+                        break;
+
+                    case "2":
+                        System.out.print("Username: ");
+                        String lu = sc.nextLine();
+                        System.out.print("Password: ");
+                        String lp = sc.nextLine();
+                        System.out.println(client.login(lu, lp));
+                        break;
+
+                    case "3":
+                        String rawList = client.searchItems("", "", 100);
+                        String[] parts = rawList.split(",");
+                        int count = Integer.parseInt(parts[2]);
+                        System.out.println("Available Items (" + count + "):");
+                        for (int i = 0; i < count; i++) {
+                            String itemId = parts[3 + 2*i];
+                            String title  = parts[4 + 2*i];
+                            System.out.printf("[%d] %s (ID: %s)%n", i+1, title, itemId);
+                        }
+                        if (count > 0) {
+                            System.out.print("Buy an item? (y/n): ");
+                            if (sc.nextLine().trim().equalsIgnoreCase("y")) {
+                                while (true) {
+                                    System.out.print("Enter item number: ");
+                                    String numStr = sc.nextLine().trim();
+                                    int sel;
+                                    try {
+                                        sel = Integer.parseInt(numStr);
+                                    } catch (NumberFormatException ex) {
+                                        System.out.println("Invalid input. Please enter a number between 1 and " + count);
+                                        continue;
+                                    }
+                                    if (sel < 1 || sel > count) {
+                                        System.out.println("Number out of range. Please enter between 1 and " + count);
+                                        continue;
+                                    }
+                                    String chosenId = parts[3 + 2*(sel-1)];
+                                    System.out.println(client.processPurchase(client.getCurrentUserId(), chosenId));
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+
+                    case "4":
+                        System.out.print("Query: ");
+                        String q = sc.nextLine();
+                        System.out.print("Category: ");
+                        String cat = sc.nextLine();
+                        System.out.print("Max results: ");
+                        int mr = Integer.parseInt(sc.nextLine());
+                        String raw = client.searchItems(q, cat, mr);
+                        String[] sp = raw.split(",");
+                        int cnt = Integer.parseInt(sp[2]);
+                        System.out.println("Search results (" + cnt + "):");
+                        for (int i = 0; i < cnt; i++) {
+                            String id = sp[3 + 2*i];
+                            String title2 = sp[4 + 2*i];
+                            System.out.printf("[%d] %s (ID: %s)%n", i+1, title2, id);
+                        }
+                        break;
+
+                    case "5":
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                            break;
+                        }
+                        System.out.print("Title: ");
+                        String t = sc.nextLine();
+                        System.out.print("Description: ");
+                        String d = sc.nextLine();
+                        System.out.print("Category: ");
+                        String c = sc.nextLine();
+                        System.out.print("Price: ");
+                        double pr = Double.parseDouble(sc.nextLine());
+                        System.out.println(client.addItem(client.getCurrentUserId(), t, d, c, pr));
+                        break;
+
+                    case "6":
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                            break;
+                        }
+
+                        // Get all users from the server
+                        String usersResponse = client.getAllUsers();
+                        String[] userParts = usersResponse.split(",");
+
+                        if (userParts.length > 1 && userParts[1].equals("SUCCESS")) {
+                            int userCount = Integer.parseInt(userParts[2]);
+                            System.out.println("\nAvailable Users (" + userCount + "):");
+
+                            for (int i = 0; i < userCount; i++) {
+                                String userId = userParts[3 + 2*i];
+                                String username = userParts[4 + 2*i];
+
+                                // Don't show the current user
+                                if (!userId.equals(client.getCurrentUserId())) {
+                                    System.out.printf("[%d] %s (ID: %s)%n", i+1, username, userId);
+                                }
+                            }
+
+                            System.out.print("\nSelect user number or enter user ID directly: ");
+                            String userInput = sc.nextLine();
+
+                            String receiverId;
+                            try {
+                                int userSelection = Integer.parseInt(userInput);
+                                if (userSelection > 0 && userSelection <= userCount) {
+                                    receiverId = userParts[3 + 2*(userSelection-1)];
+                                } else {
+                                    System.out.println("Invalid selection. Please enter a valid user ID:");
+                                    receiverId = sc.nextLine();
+                                }
+                            } catch (NumberFormatException e) {
+                                // User entered a direct ID
+                                receiverId = userInput;
+                            }
+
+                            System.out.print("Content: ");
+                            String cont = sc.nextLine();
+                            System.out.print("Item ID (or leave blank): ");
+                            String itid = sc.nextLine();
+                            if (itid.trim().isEmpty()) {
+                                itid = "none"; // Use a placeholder if no item ID is provided
+                            }
+
+                            System.out.println(client.sendMessageToUser(client.getCurrentUserId(), receiverId, cont, itid));
+                        } else {
+                            System.out.println("Failed to retrieve user list. Enter user ID manually:");
+                            String rid = sc.nextLine();
+                            System.out.print("Content: ");
+                            String cont = sc.nextLine();
+                            System.out.print("Item ID: ");
+                            String itid = sc.nextLine();
+                            System.out.println(client.sendMessageToUser(client.getCurrentUserId(), rid, cont, itid));
+                        }
+                        break;
+
+                    case "7":
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                            break;
+                        }
+
+                        // Get all users from the server
+                        String convUsersResponse = client.getAllUsers();
+                        String[] convUserParts = convUsersResponse.split(",");
+
+                        if (convUserParts.length > 1 && convUserParts[1].equals("SUCCESS")) {
+                            int userCount = Integer.parseInt(convUserParts[2]);
+                            System.out.println("\nSelect User to View Messages With:");
+
+                            for (int i = 0; i < userCount; i++) {
+                                String userId = convUserParts[3 + 2*i];
+                                String username = convUserParts[4 + 2*i];
+
+                                // Don't show the current user
+                                if (!userId.equals(client.getCurrentUserId())) {
+                                    System.out.printf("[%d] %s (ID: %s)%n", i+1, username, userId);
+                                }
+                            }
+
+                            System.out.print("\nSelect user number or enter user ID directly: ");
+                            String userInput = sc.nextLine();
+
+                            String otherUserId;
+                            try {
+                                int userSelection = Integer.parseInt(userInput);
+                                if (userSelection > 0 && userSelection <= userCount) {
+                                    otherUserId = convUserParts[3 + 2*(userSelection-1)];
+                                } else {
+                                    System.out.println("Invalid selection. Please enter a valid user ID:");
+                                    otherUserId = sc.nextLine();
+                                }
+                            } catch (NumberFormatException e) {
+                                // User entered a direct ID
+                                otherUserId = userInput;
+                            }
+
+                            System.out.println(client.getMessages(client.getCurrentUserId(), otherUserId));
+                        } else {
+                            System.out.println("Failed to retrieve user list. Enter user ID manually:");
+                            String ou = sc.nextLine();
+                            System.out.println(client.getMessages(client.getCurrentUserId(), ou));
+                        }
+                        break;
+
+                    case "8":
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                            break;
+                        }
+                        System.out.print("Amount: ");
+                        double af = Double.parseDouble(sc.nextLine());
+                        System.out.println(client.addFunds(client.getCurrentUserId(), af));
+                        break;
+
+                    case "9":
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                            break;
+                        }
+                        System.out.print("Amount: ");
+                        double wf = Double.parseDouble(sc.nextLine());
+                        System.out.println(client.withdrawFunds(client.getCurrentUserId(), wf));
+                        break;
+
+                    case "10":
+                        // View balance
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                        } else {
+                            // Send GET_BALANCE command to server
+                            String balanceResp = client.sendMessage("GET_BALANCE," + client.getCurrentUserId());
+                            String[] balParts = balanceResp.split(",");
+                            if (balParts.length >= 3 && balParts[1].equals("SUCCESS")) {
+                                System.out.println("Current balance: $" + balParts[2]);
+                            } else {
+                                System.out.println("Failed to retrieve balance.");
+                            }
+                        }
+                        break;
+
+                    case "11":
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                            break;
+                        }
+
+                        // Get active sellers from the server
+                        String sellersResponse = client.getActiveSellers();
+                        String[] sellerParts = sellersResponse.split(",");
+
+                        if (sellerParts.length > 1 && sellerParts[1].equals("SUCCESS")) {
+                            int sellerCount = Integer.parseInt(sellerParts[2]);
+                            if (sellerCount == 0) {
+                                System.out.println("No active sellers found to rate.");
+                                break;
+                            }
+
+                            System.out.println("\nActive Sellers (" + sellerCount + "):");
+                            for (int i = 0; i < sellerCount; i++) {
+                                String sellerId = sellerParts[3 + 2*i];
+                                String username = sellerParts[4 + 2*i];
+
+                                // Don't show the current user
+                                if (!sellerId.equals(client.getCurrentUserId())) {
+                                    System.out.printf("[%d] %s (ID: %s)%n", i+1, username, sellerId);
+                                }
+                            }
+
+                            System.out.print("\nSelect seller number or enter seller ID directly: ");
+                            String sellerInput = sc.nextLine();
+
+                            String sellerId;
+                            try {
+                                int sellerSelection = Integer.parseInt(sellerInput);
+                                if (sellerSelection > 0 && sellerSelection <= sellerCount) {
+                                    sellerId = sellerParts[3 + 2*(sellerSelection-1)];
+                                } else {
+                                    System.out.println("Invalid selection. Please enter a valid seller ID:");
+                                    sellerId = sc.nextLine();
+                                }
+                            } catch (NumberFormatException e) {
+                                // User entered a direct ID
+                                sellerId = sellerInput;
+                            }
+
+                            System.out.print("Rating (1-5): ");
+                            double rating = Double.parseDouble(sc.nextLine());
+
+                            // Validate rating
+                            if (rating < 1 || rating > 5) {
+                                System.out.println("Invalid rating. Please enter a value between 1 and 5.");
+                                break;
+                            }
+
+                            System.out.println(client.rateSeller(sellerId, rating));
+                        } else {
+                            System.out.println("Failed to retrieve seller list. Enter seller ID manually:");
+                            String sid = sc.nextLine();
+                            System.out.print("Rating (1-5): ");
+                            double rt = Double.parseDouble(sc.nextLine());
+                            System.out.println(client.rateSeller(sid, rt));
+                        }
+                        break;
+
+                    case "12":
+                        // View my listings
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                            break;
+                        }
+
+                        System.out.println("\nListing Options:");
+                        System.out.println("1. View All My Listings");
+                        System.out.println("2. View Only My Active Listings");
+                        System.out.print("Choose option: ");
+                        String listingOption = sc.nextLine();
+
+                        boolean activeOnly = false;
+                        if (listingOption.equals("2")) {
+                            activeOnly = true;
+                        }
+
+                        String userListingsResponse = client.getUserListings(client.getCurrentUserId(), activeOnly);
+                        String[] listingParts = userListingsResponse.split(",");
+
+                        if (listingParts.length > 1 && listingParts[1].equals("SUCCESS")) {
+                            int listingCount = Integer.parseInt(listingParts[2]);
+                            System.out.println("\n" + (activeOnly ? "Active" : "All") + " Listings (" + listingCount + "):");
+
+                            if (listingCount == 0) {
+                                System.out.println("No listings found.");
+                                break;
+                            }
+
+                            for (int i = 0; i < listingCount; i++) {
+                                // Format depends on response structure
+                                // Assuming response format: itemId,title,price,sold
+                                String itemId = listingParts[3 + 4*i];
+                                String title = listingParts[4 + 4*i];
+                                String price = listingParts[5 + 4*i];
+                                String sold = listingParts[6 + 4*i];
+
+                                System.out.printf("[%d] %s - $%s (%s)%n",
+                                        i+1, title, price, sold.equals("true") ? "SOLD" : "AVAILABLE");
+                            }
+                        } else {
+                            System.out.println("Failed to retrieve listings: " +
+                                    (listingParts.length > 2 ? listingParts[2] : "Unknown error"));
+                        }
+                        break;
+
+                    case "13":
+                        // View my rating
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                            break;
+                        }
+
+                        String ratingResponse = client.getMyRating(client.getCurrentUserId());
+                        String[] ratingParts = ratingResponse.split(",");
+
+                        if (ratingParts.length > 1 && ratingParts[1].equals("SUCCESS")) {
+                            double rating = Double.parseDouble(ratingParts[2]);
+                            int ratingCount = Integer.parseInt(ratingParts[3]);
+
+                            if (ratingCount == 0) {
+                                System.out.println("\nYou have not received any ratings yet.");
+                            } else {
+                                System.out.printf("\nYour current rating is: %.1f/5.0 (based on %d ratings)%n",
+                                        rating, ratingCount);
+
+                                // Display rating as stars
+                                System.out.print("Rating: ");
+                                int fullStars = (int)Math.floor(rating);
+                                boolean halfStar = (rating - fullStars) >= 0.5;
+
+                                for (int i = 0; i < fullStars; i++) {
+                                    System.out.print("★");
+                                }
+                                if (halfStar) {
+                                    System.out.print("½");
+                                }
+                                int emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+                                for (int i = 0; i < emptyStars; i++) {
+                                    System.out.print("☆");
+                                }
+                                System.out.println();
+                            }
+                        } else {
+                            System.out.println("Failed to retrieve rating: " +
+                                    (ratingParts.length > 2 ? ratingParts[2] : "Unknown error"));
+                        }
+                        break;
+
+                    case "14":
+                        // Delete account
+                        if (client.getCurrentUserId() == null) {
+                            System.out.println("Please login first!");
+                            break;
+                        }
+
+                        System.out.println("\n⚠️ WARNING: This will permanently delete your account and all data!");
+                        System.out.print("Are you sure? (type 'yes' to confirm): ");
+                        String confirmation = sc.nextLine();
+
+                        if (confirmation.toLowerCase().equals("yes")) {
+                            String deleteResponse = client.deleteAccount(client.getCurrentUserId());
+                            String[] deleteParts = deleteResponse.split(",");
+
+                            if (deleteParts.length > 1 && deleteParts[1].equals("SUCCESS")) {
+                                System.out.println("Account deleted successfully.");
+                                client.setCurrentUserId(null); // Log out after deletion
+                            } else {
+                                System.out.println("Failed to delete account: " +
+                                        (deleteParts.length > 2 ? deleteParts[2] : "Unknown error"));
+                            }
+                        } else {
+                            System.out.println("Account deletion cancelled.");
+                        }
+                        break;
+
+                    case "15":
+                        client.setCurrentUserId(null);
+                        System.out.println("Logged out.");
+                        break;
+
+                    case "0":
+                        running = false;
+                        break;
+
+                    default:
+                        System.out.println("Invalid choice");
+                }
+            } catch (Exception ex) {
+                System.out.println("Error: " + ex.getMessage());
+                ex.printStackTrace();
             }
         }
         client.disconnect();
-        sc.close();
     }
 }
