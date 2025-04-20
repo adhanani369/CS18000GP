@@ -29,6 +29,10 @@ public class Server {
     public void startServer() {
         try {
             this.database = new Database();
+            database.readUserFile();
+            database.readItemFile();
+            database.readMessageFiles();
+            //database.readRatingsFile();
             serverSocket = new ServerSocket(PORT);
             running = true;
             System.out.println("Server started on port " + PORT);
@@ -187,11 +191,146 @@ public class Server {
                     return handleRateSeller(parts);
                 case "GET_RATING":
                     return handleGetRating(parts);
+                case "GET_BALANCE":
+                    return handleGetBalance(parts);
+                case "GET_ALL_USERS":
+                    return handleGetAllUsers();
+                case "GET_ACTIVE_SELLERS":
+                    return handleGetActiveSellers();
+                case "GET_USER_LISTINGS":
+                    return handleGetUserListings(parts);
+                case "GET_MY_RATING":
+                    return handleGetMyRating(parts);
                 default:
                     return "ERROR,Unknown command: " + command;
             }
         }
 
+        private String handleGetMyRating(String[] parts) {
+            if (parts.length < 2) {
+                return "GET_MY_RATING,FAILURE,Invalid parameters";
+            }
+
+            String userId = parts[1];
+            User user = database.getUserById(userId);
+
+            if (user == null) {
+                return "GET_MY_RATING,FAILURE,User not found";
+            }
+
+            // Get the user's ratings as a seller
+            List<Item> soldItems = user.getSoldItems();
+            if (soldItems.isEmpty()) {
+                return "GET_MY_RATING,SUCCESS,0.0,0";
+            }
+
+            double totalRating = 0.0;
+            int ratingCount = 0;
+
+            for (Item item : soldItems) {
+                double itemRating = item.getRating();
+                if (itemRating > 0.0) {
+                    totalRating += itemRating;
+                    ratingCount++;
+                }
+            }
+
+            double averageRating = ratingCount > 0 ? totalRating / ratingCount : 0.0;
+
+            return String.format("GET_MY_RATING,SUCCESS,%.1f,%d", averageRating, ratingCount);
+        }
+
+        private String handleGetUserListings(String[] parts) {
+            if (parts.length < 3) {
+                return "GET_USER_LISTINGS,FAILURE,Invalid parameters";
+            }
+
+            String userId = parts[1];
+            boolean activeOnly = Boolean.parseBoolean(parts[2]);
+
+            User user = database.getUserById(userId);
+            if (user == null) {
+                return "GET_USER_LISTINGS,FAILURE,User not found";
+            }
+
+            List<Item> listings;
+            if (activeOnly) {
+                listings = user.getActiveListings();
+            } else {
+                // Combine active listings and sold items
+                listings = new ArrayList<>(user.getActiveListings());
+                listings.addAll(user.getSoldItems());
+            }
+
+            StringBuilder response = new StringBuilder("GET_USER_LISTINGS,SUCCESS," + listings.size());
+
+            for (Item item : listings) {
+                response.append(",")
+                        .append(item.getItemId())
+                        .append(",")
+                        .append(item.getTitle())
+                        .append(",")
+                        .append(item.getPrice())
+                        .append(",")
+                        .append(item.isSold());
+            }
+
+            return response.toString();
+        }
+
+
+
+        private String handleGetAllUsers() {
+            List<User> users = database.getAllUsers();
+            StringBuilder response = new StringBuilder("GET_ALL_USERS,SUCCESS," + users.size());
+
+            for (User user : users) {
+                response.append(",")
+                        .append(user.getUserId())
+                        .append(",")
+                        .append(user.getUsername());
+            }
+
+            return response.toString();
+        }
+
+        private String handleGetBalance(String[] parts) {
+            if (parts.length < 2) {
+                return "GET_BALANCE,FAILURE,Invalid parameters";
+            }
+            String userId = parts[1];
+            System.out.println("Processing get balance for user: " + userId);
+            User user = database.getUserById(userId);
+            if (user == null) {
+                return "GET_BALANCE,FAILURE,User not found";
+            }
+            double balance = user.getBalance();
+            return "GET_BALANCE,SUCCESS," + balance;
+        }
+
+
+        private String handleGetActiveSellers() {
+            List<User> allUsers = database.getAllUsers();
+            List<User> activeSellers = new ArrayList<>();
+
+            // Find users who have active listings (are sellers)
+            for (User user : allUsers) {
+                if (!user.getActiveListings().isEmpty()) {
+                    activeSellers.add(user);
+                }
+            }
+
+            StringBuilder response = new StringBuilder("GET_ACTIVE_SELLERS,SUCCESS," + activeSellers.size());
+
+            for (User seller : activeSellers) {
+                response.append(",")
+                        .append(seller.getUserId())
+                        .append(",")
+                        .append(seller.getUsername());
+            }
+
+            return response.toString();
+        }
 
         private String handleRegister(String[] parts) {
             // Check parameters
@@ -205,7 +344,7 @@ public class Server {
 
             System.out.println("Processing registration for user: " + username);
 
-            // Simulate registration success (this would actually call database methods) 
+            // Simulate registration success (this would actually call database methods)
             boolean success = database.addUser(username, password, bio); // Determines success of request
 
             return "REGISTER," + (success ? "SUCCESS" : "FAILURE");
@@ -224,25 +363,46 @@ public class Server {
             System.out.println("Processing login for user: " + username);
 
             // Simulate login success (this would actually call database methods)
-            boolean success = database.login(username + "," + password); // Determines success of request
-            String userId = "user_" + System.currentTimeMillis();
-
+            boolean success = database.login(username + "," + password);
+            String userId = null;
+            if (success) {
+                User user = database.getUserByUsername(username);
+                if (user != null) {
+                    userId = user.getUserId();
+                } else {
+                    success = false;
+                }
+            }
             return "LOGIN," + (success ? "SUCCESS," + userId : "FAILURE");
         }
 
 
         private String handleDeleteAccount(String[] parts) {
-            // Check parameters
             if (parts.length < 2) {
                 return "DELETE_ACCOUNT,FAILURE,Invalid parameters";
             }
-            //
-            String username = parts[1];
 
-            System.out.println("Processing account deletion for user: " + username);
+            String userId = parts[1];
+            User user = database.getUserById(userId);
 
-            // Simulate deletion success (this would actually call database methods)
-            boolean success = true; // Determines success of request
+            if (user == null) {
+                return "DELETE_ACCOUNT,FAILURE,User not found";
+            }
+
+            // Check if user has active listings
+            List<Item> activeListings = user.getActiveListings();
+            if (!activeListings.isEmpty()) {
+                // Option 1: Prevent deletion if user has active listings
+                // return "DELETE_ACCOUNT,FAILURE,User has active listings";
+
+                // Option 2: Automatically remove all active listings
+                for (Item item : new ArrayList<>(activeListings)) {
+                    database.removeItem(item.getItemId(), userId);
+                }
+            }
+
+            // Delete the user account
+            boolean success = database.deleteUser(user.getUsername());
 
             return "DELETE_ACCOUNT," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -266,14 +426,14 @@ public class Server {
                 return "ADD_ITEM,FAILURE,Invalid price";
             }
 
-            System.out.println("Processing add item: " + title + " by seller " + sellerId);
-
-            // Simulate adding item (this would actually call database methods)
-            boolean success; //success of request
-            success = database.addItem(new Item(sellerId, title, description, category, price)); 
-            String itemId = "item_" + System.currentTimeMillis();
-
-            return "ADD_ITEM," + (success ? "SUCCESS," + itemId : "FAILURE");
+            // 1) construct the item
+            Item newItem = new Item( sellerId, title, description, category, price );
+            // 2) add it to your in‑memory db (and disk)
+            boolean success = database.addItem(newItem);
+            // 3) fetch the ID it actually got
+            String actualId = newItem.getItemId();
+            // 4) return that exact ID to the client
+            return "ADD_ITEM," + (success ? "SUCCESS," + actualId : "FAILURE");
         }
 
 
@@ -291,7 +451,7 @@ public class Server {
             Item item = database.getItemById(itemId);
             boolean success = true; // Determines success of request
             if (item == null) {
-               success = false; 
+                success = false;
             }
 
             if (success) {
@@ -313,40 +473,56 @@ public class Server {
 
 
         private String handleSearchItems(String[] parts) {
-            // Check parameters
-            if (parts.length < 2) {
-                return "SEARCH_ITEMS,FAILURE,Invalid parameters";
-            }
-
-            String query = parts[1];
-            String category = parts.length > 2 ? parts[2] : null;
-            int maxResults = 10;
-
-            // In case of unexpect input 
-            if (parts.length > 3) {
-                try {
-                    maxResults = Integer.parseInt(parts[3]);
-                } catch (NumberFormatException e) {
-                    return "SEARCH_ITEMS,FAILURE,Invalid maxResults";
+            try {
+                // Check parameters
+                if (parts.length < 2) {
+                    return "SEARCH_ITEMS,FAILURE,Invalid parameters";
                 }
+
+                String query = parts[1];
+                String category = parts.length > 2 ? parts[2] : null;
+                int maxResults = 10;
+
+                // In case of unexpected input
+                if (parts.length > 3) {
+                    try {
+                        maxResults = Integer.parseInt(parts[3]);
+                    } catch (NumberFormatException e) {
+                        return "SEARCH_ITEMS,FAILURE,Invalid maxResults";
+                    }
+                }
+
+                System.out.println("Processing search: " + query + ", category: " + category);
+
+                // Debug statement to check database state
+                System.out.println("Database has " + database.getAllItems().size() + " total items");
+
+                try {
+                    SearchService searchService = new SearchService(database);
+                    List<Item> results = searchService.search(query, category, maxResults);
+
+                    System.out.println("Search returned " + results.size() + " items");
+
+                    StringBuilder response = new StringBuilder("SEARCH_ITEMS,SUCCESS," + results.size());
+
+                    // Add results
+                    for (Item item : results) {
+                        response.append("," + item.getItemId() + "," + item.getTitle());
+                    }
+
+                    String responseStr = response.toString();
+                    System.out.println("Search response: " + responseStr);
+                    return responseStr;
+                } catch (Exception e) {
+                    System.out.println("Error in search: " + e.getMessage());
+                    e.printStackTrace();
+                    return "SEARCH_ITEMS,FAILURE,Search error: " + e.getMessage();
+                }
+            } catch (Exception e) {
+                System.out.println("Unexpected error in handleSearchItems: " + e.getMessage());
+                e.printStackTrace();
+                return "SEARCH_ITEMS,FAILURE,Server error";
             }
-
-            System.out.println("Processing search: " + query + ", category: " + category);
-
-            // Simulate search results (this would actually call database methods)
-            // Return: SEARCH_ITEMS,SUCCESS,count,itemId1,title1,itemId2,title2,...
-
-
-            SearchService searchService = new SearchService(database);
-            List<Item> results = searchService.search(query, category, maxResults);
-            
-            StringBuilder response = new StringBuilder("SEARCH_ITEMS,SUCCESS," + results.size());
-
-            // Add mock results
-            for (Item item : results) {
-                response.append(",item123,"+ item.getItemId() + "," + item.getTitle());
-            }
-            return response.toString();
         }
 
 
@@ -371,7 +547,7 @@ public class Server {
 
             // neccessary?
             if (success) {
-                database.writeItemFile();  
+                database.writeItemFile();
             }
 
             return "MARK_SOLD," + (success ? "SUCCESS" : "FAILURE");
@@ -391,7 +567,7 @@ public class Server {
 
             // Simulate removing item (this would actually call database methods)
             boolean success = database.removeItem(itemId, sellerId); // Determines success of request
-            
+
             if (success) {
                 database.writeItemFile();
             }
@@ -441,9 +617,9 @@ public class Server {
             StringBuilder response = new StringBuilder("GET_MESSAGES,SUCCESS,messages.size()");
 
             // Add mock messages
-             for (Message message : messages){
-                response.append(message.getMessageId() + "," + message.getSenderId() + "," 
-                                + message.getReceiverId() + "," + message.getTimestamp() + "," + message.getContent());
+            for (Message message : messages){
+                response.append(message.getMessageId() + "," + message.getSenderId() + ","
+                        + message.getReceiverId() + "," + message.getTimestamp() + "," + message.getContent());
             }
             return response.toString();
         }
@@ -479,7 +655,7 @@ public class Server {
                     response.append("," + partnerId + "," + partner.getUsername());
                 }
             }
-    
+
             return response.toString();
         }
 
@@ -510,8 +686,11 @@ public class Server {
             }
 
             if (success) {
-                database.writeItemFile();
+                //database.writeItemFile();
+                database.writeUserFile();   // ← write *users.txt*, not items.txt
             }
+
+
 
             return "ADD_FUNDS," + (success ? "SUCCESS" : "FAILURE");
         }
@@ -535,63 +714,64 @@ public class Server {
             System.out.println("Processing withdraw funds: $" + amount + " from user " + userId);
 
             // Simulate withdrawing funds (this would actually call database methods)
-            boolean success = true; // Determines success of request 
-            User currentUser = database.getUserById(userId); // Tracks the current user
 
-            if (currentUser == null) {
-                success = false;
-            } else {
-                success = currentUser.withdrawFunds(amount);
-            }
-
+            User currentUser = database.getUserById(userId);
+            boolean success = currentUser != null && currentUser.withdrawFunds(amount);
             if (success) {
-                database.writeItemFile();
+                // Persist the updated balance
+                database.writeUserFile();
             }
-
             return "WITHDRAW_FUNDS," + (success ? "SUCCESS" : "FAILURE");
         }
 
 
         private String handleProcessPurchase(String[] parts) {
-            // Check parameters
-            if (parts.length < 3) {
-                return "PROCESS_PURCHASE,FAILURE,Invalid parameters";
-            }
-
             String buyerId = parts[1];
-            String itemId = parts[2];
+            String itemId  = parts[2];
 
-            System.out.println("Processing purchase of item " + itemId + " by buyer " + buyerId);
+            System.out.println(">> Purchase request: buyer=" + buyerId + ", item=" + itemId);
 
-            // Simulate processing purchase (this would actually call database methods)
-            boolean success = true; // Determines success of request
-            User buyer = database.getUserById(buyerId);  // Tracks the buyer
-            Item item = database.getItemById(itemId); // Tracks the item
-            if ((item == null)  || (item.isSold())) {
-                success = false;
-                return "PROCESS_PURCHASE," + (success ? "SUCCESS" : "FAILURE");
+            User buyer  = database.getUserById(buyerId);
+            Item item   = database.getItemById(itemId);
+            if (item == null) {
+                System.out.println("   -> FAIL: item lookup returned null");
+                return "PROCESS_PURCHASE,FAILURE,Item not found";
             }
-            User seller = database.getUserById(item.getSellerId()); // Tracks the user
-            if ((buyerId == null) || (buyer.equals(seller))) {
-                success = false;
-            } else {
-                double itemCost = item.getPrice(); // Tracks the item cost
-                if (!buyer.withdrawFunds(itemCost)) {
-                    success = false;
-                    return "PROCESS_PURCHASE," + (success ? "SUCCESS" : "FAILURE");
-                }
-                seller.depositFunds(itemCost);
-                seller.removeListing(itemId);
-                buyer.addToPurchaseHistory(item);
-                item.markAsSold(buyerId);
+            System.out.println("   -> Item found; sold? " + item.isSold());
+
+            // now the rest of your logic...
+            if (item.isSold()) {
+                System.out.println("   -> FAIL: item.isSold() == true");
+                return "PROCESS_PURCHASE,FAILURE,Item already sold";
             }
 
-            if (success) {
-                database.writeItemFile();
+            User seller = database.getUserById(item.getSellerId());
+            if (buyer.equals(seller)) {
+                System.out.println("   -> FAIL: buyer equals seller");
+                return "PROCESS_PURCHASE,FAILURE,Cannot buy your own item";
             }
 
-            return "PROCESS_PURCHASE," + (success ? "SUCCESS" : "FAILURE");
+            double cost = item.getPrice();
+            System.out.println("   -> Buyer balance before withdraw: " + buyer.getBalance());
+            if (!buyer.withdrawFunds(cost)) {
+                System.out.println("   -> FAIL: insufficient funds");
+                return "PROCESS_PURCHASE,FAILURE,Insufficient funds";
+            }
+
+            // all checks passed—perform the transaction
+            System.out.println("   -> Withdrew $" + cost + ", new balance: " + buyer.getBalance());
+            seller.depositFunds(cost);
+
+            // persist both user balances and item status
+            database.writeUserFile();
+            item.markAsSold(buyerId);
+            database.writeItemFile();
+
+            System.out.println("   -> SUCCESS: purchase complete");
+            return "PROCESS_PURCHASE,SUCCESS";
         }
+
+
 
 
         private String handleRateSeller(String[] parts) {
@@ -616,7 +796,7 @@ public class Server {
             if (seller == null) {
                 return "RATE_SELLER,FAILURE,Seller not found";
             }
-        
+
             List<Item> soldItems = seller.getSoldItems();
             if (soldItems == null || soldItems.isEmpty()) {
                 return "RATE_SELLER,FAILURE,No sold items to rate";
@@ -628,7 +808,7 @@ public class Server {
                     return "RATE_SELLER,SUCCESS";
                 }
             }
-            
+
             return "RATE_SELLER,FAILURE,All items already rated";
         }
 
@@ -647,13 +827,13 @@ public class Server {
             User seller = database.getUserById(sellerId);
             List<Item> soldItems = seller.getSoldItems();
             double sellerRating = 0.0;
-        
+
             if (seller == null) {
                 return "GET_RATING,FAILURE,Seller not found";
             }
-            
+
             if (soldItems == null || soldItems.isEmpty()) {
-                return "GET_RATING,SUCCESS," + sellerRating; 
+                return "GET_RATING,SUCCESS," + sellerRating;
             }
 
             int numOfRating = 0;
@@ -664,7 +844,7 @@ public class Server {
                     numOfRating++;
                 }
             }
-            
+
             double averageRating = numOfRating > 0 ? sellerRating / numOfRating : 0.0;
             return "GET_RATING,SUCCESS," + averageRating;
         }
