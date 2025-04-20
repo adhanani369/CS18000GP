@@ -310,7 +310,7 @@ public class Database implements DatabaseInterface {
      * Reads the ratings file.
      */
 
-    private Map<String, List<Double>> readRatingsFile() {
+    public Map<String, List<Double>> readRatingsFile() {
 
         File file = new File("ratings.txt");
 
