@@ -6,13 +6,13 @@ import java.util.Arrays;
 import java.util.List;
 
 /*
- * This is the item class where the user can create a items 
+ * This is the item class where the user can create a items
  * which can put on the market and sold to other users.
- * 
+ *
  * @frahman284
- * 
+ *
  * April 5th, 2025
- * 
+ *
  */
 public class Item implements ItemInterface{
 
@@ -28,7 +28,7 @@ public class Item implements ItemInterface{
     private boolean sold;
     private String buyerId;
     private List<String> specialCharacters;
-    
+
     /**
      * Creates a new item listing with the specified details.
      */
@@ -45,21 +45,35 @@ public class Item implements ItemInterface{
         this.buyerId = null;
         this.ratingCount = 0;
         getSpecialCharacters();
-        this.itemId = java.util.UUID.randomUUID().toString();   
+        this.itemId = java.util.UUID.randomUUID().toString();
         this.description = (description == null) ? ("") : (description);
         this.tags = this.extractTags(this.getStopwords());
-
     }
-    
+
+    /**
+     * Creates a new item with a specific itemId (for database loading).
+     */
+    public Item(String itemId, String sellerId, String title, String description, String category, double price) {
+        this(sellerId, title, description, category, price);
+        this.itemId = itemId;  // Override the generated UUID with the provided ID
+    }
+
+    /**
+     * Sets the item ID (used when loading from database).
+     */
+    public void setItemId(String itemId) {
+        this.itemId = itemId;
+    }
+
     /**
      * Gets the item's unique identifier.
-     */ 
+     */
     @Override
     public String getItemId() {
         // Return itemId
         return this.itemId;
     }
-    
+
     /**
      * Gets the ID of the user selling this item.
      */
@@ -68,7 +82,7 @@ public class Item implements ItemInterface{
         // Return sellerId
         return this.sellerId;
     }
-    
+
     /**
      * Gets the title of this item.
      */
@@ -77,7 +91,7 @@ public class Item implements ItemInterface{
         // Return title
         return this.title;
     }
-    
+
     /**
      * Gets the description of this item.
      */
@@ -86,7 +100,7 @@ public class Item implements ItemInterface{
         // Return description
         return this.description;
     }
-    
+
     /**
      * Gets the category of this item.
      */
@@ -95,7 +109,7 @@ public class Item implements ItemInterface{
         // Return category
         return this.category;
     }
-    
+
     /**
      * Gets the tags associated with this item.
      */
@@ -104,7 +118,7 @@ public class Item implements ItemInterface{
         // Return tags
         return this.tags;
     }
-    
+
     /**
      * Gets the price of this item.
      */
@@ -113,7 +127,7 @@ public class Item implements ItemInterface{
         // Return price
         return this.price;
     }
-    
+
     /**
      * Gets the current rating of this item.
      */
@@ -123,7 +137,7 @@ public class Item implements ItemInterface{
         return this.rating;
     }
 
-    
+
     /**
      * Updates the item's rating with a new user rating.
      */
@@ -138,17 +152,17 @@ public class Item implements ItemInterface{
         double newAverageRating = (ratingCount * currentRating + newRating) / (++this.ratingCount); // new rating
         this.rating = newAverageRating;
     }
-    
+
     /**
      * Checks whether this item has been sold.
      */
-     @Override
-     public boolean isSold() {
+    @Override
+    public boolean isSold() {
         // Return sold status
         return this.sold;
     }
 
-    
+
     /**
      * Marks this item as sold to the specified buyer.
      */
@@ -165,7 +179,7 @@ public class Item implements ItemInterface{
         }
         return false; // Marks unsuccessfull
     }
-    
+
     /**
      * Gets the ID of the user who purchased this item.
      */
@@ -174,7 +188,7 @@ public class Item implements ItemInterface{
         // Return buyerId
         return this.buyerId;
     }
-    
+
     /*
      * Gets the stop words from reading the stopwords.txt file
      */
@@ -185,7 +199,7 @@ public class Item implements ItemInterface{
             return Arrays.asList(stopWordsRaw.split(",")); // Splits and returns an array containing the stop words
         } catch (IOException e) {
             e.printStackTrace();
-            return null;
+            return new ArrayList<>(); // Return empty list instead of null
         }
     }
 
@@ -197,7 +211,7 @@ public class Item implements ItemInterface{
         List<String> descriptionWords = Arrays.asList(this.description.split("[- ]")); // Splits description to words
         List<String> finalTagList = new ArrayList<>(); // Tracks the final list of tags
         for (String word : descriptionWords) {
-            if (stopwords.contains(word.toLowerCase()) == false) {
+            if (stopwords != null && !stopwords.contains(word.toLowerCase())) {
                 finalTagList.add(cleanWord(word));
             }
         }
@@ -213,6 +227,7 @@ public class Item implements ItemInterface{
             this.specialCharacters = Arrays.asList(characters.split(" ")); // returns array with special characters
         } catch (IOException e) {
             e.printStackTrace();
+            this.specialCharacters = new ArrayList<>(); // Initialize to empty list on error
         }
     }
 
@@ -221,6 +236,9 @@ public class Item implements ItemInterface{
      */
     @Override
     public String cleanWord(String word) {
+        if (this.specialCharacters == null) {
+            return word;
+        }
 
         for (String character : this.specialCharacters) {
             int count = word.indexOf(character); // Tracks the index to see if the word contain special character
@@ -228,8 +246,6 @@ public class Item implements ItemInterface{
                 word = word.replaceAll("\\".concat(character), "");
             }
         }
-        System.out.println(word);
         return word;
     }
-
 }
