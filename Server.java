@@ -32,7 +32,7 @@ public class Server {
             database.readUserFile();
             database.readItemFile();
             database.readMessageFiles();
-            //database.readRatingsFile();
+            database.readRatingsFile();
             serverSocket = new ServerSocket(PORT);
             running = true;
             System.out.println("Server started on port " + PORT);
@@ -313,10 +313,13 @@ public class Server {
             List<User> allUsers = database.getAllUsers();
             List<User> activeSellers = new ArrayList<>();
 
-            // Find users who have active listings (are sellers)
+            // Find users who have sold at least one item
             for (User user : allUsers) {
-                if (!user.getActiveListings().isEmpty()) {
+                List<Item> soldItems = user.getSoldItems();
+                if (soldItems != null && !soldItems.isEmpty()) {
                     activeSellers.add(user);
+                    System.out.println("Found seller with sold items: " + user.getUsername() +
+                            " (" + user.getUserId() + ") - " + soldItems.size() + " sold items");
                 }
             }
 
@@ -791,25 +794,62 @@ public class Server {
 
             System.out.println("Processing seller rating: " + rating + " for seller " + sellerId);
 
-            // Simulate rating seller (this would actually call database methods)
+            // Get the seller
             User seller = database.getUserById(sellerId);
             if (seller == null) {
                 return "RATE_SELLER,FAILURE,Seller not found";
             }
 
+            // Check if the seller has sold items
             List<Item> soldItems = seller.getSoldItems();
-            if (soldItems == null || soldItems.isEmpty()) {
-                return "RATE_SELLER,FAILURE,No sold items to rate";
-            }
+            System.out.println("Seller has " + (soldItems == null ? "null" : soldItems.size()) + " sold items");
 
-            for (Item item : soldItems) {
-                if (item.getRating() == 0.0) {
-                    item.updateRating(rating);
-                    return "RATE_SELLER,SUCCESS";
+            if (soldItems != null) {
+                for (Item item : soldItems) {
+                    System.out.println("Sold item: " + item.getItemId() + ", Title: " + item.getTitle() +
+                            ", Sold: " + item.isSold() + ", BuyerId: " + item.getBuyerId());
                 }
             }
 
-            return "RATE_SELLER,FAILURE,All items already rated";
+            if (soldItems == null || soldItems.isEmpty()) {
+                return "RATE_SELLER,FAILURE,This seller hasn't sold any items yet";
+            }
+
+            // Add rating to the seller in the ratings database
+            boolean success = database.addSellerRating(sellerId, rating);
+
+            if (success) {
+                // Also update one of the items with the rating
+                if (!soldItems.isEmpty()) {
+                    // Choose the first item that hasn't been rated yet, or the first item if all are rated
+                    Item targetItem = null;
+
+                    for (Item item : soldItems) {
+                        if (item.getRating() == 0.0) {
+                            targetItem = item;
+                            break;
+                        }
+                    }
+
+                    // If no unrated item was found, use the first one
+                    if (targetItem == null && !soldItems.isEmpty()) {
+                        targetItem = soldItems.get(0);
+                    }
+
+                    if (targetItem != null) {
+                        targetItem.updateRating(rating);
+                        System.out.println("Updated rating for item: " + targetItem.getItemId() + " to " + rating);
+                        database.writeItemFile(); // Persist changes to item file
+                    }
+                }
+
+                // Ensure the rating is written to the ratings file
+                database.writeRatingsFile();
+
+                return "RATE_SELLER,SUCCESS";
+            }
+
+            return "RATE_SELLER,FAILURE,Failed to add rating";
         }
 
 
