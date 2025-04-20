@@ -194,10 +194,22 @@ public class User implements UserInterface {
      */
     @Override
     public ArrayList<Item> getSoldItems() {
-        // Filter items sold by this user
-        return database.getAllItems().stream()
+        // Get all items from the database that were sold by this user
+        ArrayList<Item> soldItemsList = database.getAllItems().stream()
                 .filter(item -> item.getSellerId().equals(this.userId) && item.isSold())
                 .collect(Collectors.toCollection(ArrayList::new));
+
+        // Debug information
+        System.out.println("User " + this.userId + " (" + this.username + ") has " + soldItemsList.size() + " sold items");
+
+        if (!soldItemsList.isEmpty()) {
+            for (Item item : soldItemsList) {
+                System.out.println("  Item: " + item.getItemId() + ", Title: " + item.getTitle() +
+                        ", Buyer: " + item.getBuyerId() + ", Sold: " + item.isSold());
+            }
+        }
+
+        return soldItemsList;
     }
 
     /**
