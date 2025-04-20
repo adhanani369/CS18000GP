@@ -8,11 +8,12 @@ public class Database implements DatabaseInterface {
     private Map<String, Item> items;
     private List<Message> messages;
     private Map<String, Map<String, String>> userConversations; // userId -> (conversationKey -> fileName)
-
+    private Map<String, List<Double>> ratings;
 
     private static final String USER_FILE = "users.txt";
     private static final String ITEM_FILE = "items.txt";
     private static final String MESSAGE_FILE = "messages.txt";
+    private static final String RATING_FILE = "ratings.txt";
 
     /**
      * Creates a new Database instance.
@@ -23,6 +24,8 @@ public class Database implements DatabaseInterface {
         items = new HashMap<>();
         messages = new ArrayList<>();
         userConversations = new HashMap<>(); // Initialize the userConversations map
+        ratings = new HashMap<>();
+
     }
 
     /**
@@ -179,6 +182,199 @@ public class Database implements DatabaseInterface {
         }
     }
 
+    public synchronized boolean deleteUser(String username) {
+        User user = usersByUsername.get(username);
+        if (user == null) {
+            return false;
+        }
+
+        String userId = user.getUserId();
+
+        // Remove user's active listings
+        List<Item> activeListings = new ArrayList<>(user.getActiveListings());
+        for (Item item : activeListings) {
+            removeItem(item.getItemId(), userId);
+        }
+
+        // Remove references to this user in conversations
+        List<Message> messagesToRemove = new ArrayList<>();
+        for (Message message : messages) {
+            if (message.getSenderId().equals(userId) || message.getReceiverId().equals(userId)) {
+                messagesToRemove.add(message);
+            }
+        }
+        messages.removeAll(messagesToRemove);
+
+        // Remove user from maps
+        usersByUsername.remove(username);
+        usersById.remove(userId);
+
+        // Remove user's conversations
+        Map<String, String> userConvs = userConversations.get(userId);
+        if (userConvs != null) {
+            // Delete conversation files
+            for (String fileName : userConvs.values()) {
+                File file = new File(fileName);
+                if (file.exists()) {
+                    file.delete();
+                }
+            }
+            userConversations.remove(userId);
+        }
+
+        // Update other users' conversation maps
+        for (Map<String, String> convMap : userConversations.values()) {
+            List<String> keysToRemove = new ArrayList<>();
+            for (String key : convMap.keySet()) {
+                if (key.contains("_" + userId)) {
+                    keysToRemove.add(key);
+                }
+            }
+            for (String key : keysToRemove) {
+                convMap.remove(key);
+            }
+        }
+
+        // Write changes to files
+        writeUserFile();
+        writeItemFile();
+        // Delete any ratings associated with this user
+        if (ratings.containsKey(userId)) {
+            ratings.remove(userId);
+            writeRatingsFile(ratings);
+        }
+
+        return true;
+    }
+
+    /**
+     * Adds a rating for a seller.
+     * Ratings are stored in a separate ratings file.
+     */
+    public synchronized boolean addSellerRating(String sellerId, double rating) {
+        if (rating < 1 || rating > 5) {
+            return false;
+        }
+
+        User seller = usersById.get(sellerId);
+        if (seller == null) {
+            return false;
+        }
+
+        try {
+            // Load existing ratings
+            Map<String, List<Double>> ratings = readRatingsFile();
+
+            // Add or update the seller's ratings
+            List<Double> sellerRatings = ratings.getOrDefault(sellerId, new ArrayList<>());
+            sellerRatings.add(rating);
+            ratings.put(sellerId, sellerRatings);
+
+            // Write ratings back to file
+            writeRatingsFile(ratings);
+
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error adding seller rating: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets a seller's average rating.
+     */
+    public synchronized double getSellerRating(String sellerId) {
+        try {
+            // Load ratings
+            Map<String, List<Double>> ratings = readRatingsFile();
+
+            // Get seller's ratings
+            List<Double> sellerRatings = ratings.getOrDefault(sellerId, new ArrayList<>());
+            if (sellerRatings.isEmpty()) {
+                return 0.0;
+            }
+
+            // Calculate average
+            double sum = 0.0;
+            for (Double r : sellerRatings) {
+                sum += r;
+            }
+            return sum / sellerRatings.size();
+        } catch (Exception e) {
+            System.err.println("Error getting seller rating: " + e.getMessage());
+            return 0.0;
+        }
+    }
+
+    /**
+     * Reads the ratings file.
+     */
+
+    private Map<String, List<Double>> readRatingsFile() {
+
+        File file = new File("ratings.txt");
+
+        if (!file.exists()) {
+            return ratings;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 2) {
+                    String sellerId = parts[0];
+                    List<Double> sellerRatings = new ArrayList<>();
+
+                    for (int i = 1; i < parts.length; i++) {
+                        try {
+                            double rating = Double.parseDouble(parts[i]);
+                            sellerRatings.add(rating);
+                        } catch (NumberFormatException e) {
+                            // Skip invalid ratings
+                        }
+                    }
+
+                    ratings.put(sellerId, sellerRatings);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading ratings file: " + e.getMessage());
+        }
+
+        return ratings;
+    }
+
+    /**
+     * Writes the ratings file.
+     */
+    private void writeRatingsFile(Map<String, List<Double>> ratings) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter("ratings.txt"))) {
+            for (Map.Entry<String, List<Double>> entry : ratings.entrySet()) {
+                StringBuilder line = new StringBuilder(entry.getKey());
+                for (Double rating : entry.getValue()) {
+                    line.append(",").append(rating);
+                }
+                writer.println(line.toString());
+            }
+        } catch (IOException e) {
+            System.err.println("Error writing ratings file: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Reads the ratings file.
+     * This method should be called during database initialization.
+     */
+
+
+    /**
+     * Writes the ratings file.
+     * This method should be called during database shutdown.
+     */
+    public synchronized void writeRatingsFile() {
+        // No implementation needed as writeRatingsFile(Map) is called directly when ratings are modified
+    }
     /**
      * For backward compatibility - use when item ID is not known
      */
@@ -402,7 +598,7 @@ public class Database implements DatabaseInterface {
      * Writes item data to file.
      */
     public synchronized void writeItemFile() {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(ITEM_FILE, true))) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(ITEM_FILE))) {
             for (Item item : items.values()) {
                 writer.println(item.getItemId() + "," +
                         item.getSellerId() + "," +
@@ -567,10 +763,9 @@ public class Database implements DatabaseInterface {
                     try {
                         double price = Double.parseDouble(parts[5]);
 
-                        // Create item but set ID manually since we're loading from file
+                        // Use the constructor that takes an itemId, or use setItemId method
                         Item item = new Item(sellerId, title, description, category, price);
-                        // We need access to set the ID or a constructor that takes ID
-                        // This is simplified - actual implementation would depend on Item class
+                        item.setItemId(itemId); // Use the ID from the file instead of generating a new one
 
                         // If file contains sold status and buyer info (optional)
                         if (parts.length > 6) {
@@ -590,6 +785,7 @@ public class Database implements DatabaseInterface {
                         }
                     } catch (NumberFormatException e) {
                         // Skip invalid price
+                        System.err.println("Error parsing price for item: " + itemId);
                     }
                 }
             }
