@@ -14,17 +14,14 @@ public class SearchBarTest {
     public void testFindSellerById_ValidUserId() {
         Database db = new Database();
         SearchBar searchBar = new SearchBar(db);
+        db.addUser("user1", "pass", "bio");
+        User u = db.getUserByUsername("user1");
+        Item item = new Item(u.getUserId(), "Book A", "Desc", "Books", 10.0);
+        assertTrue(db.addItem(item));
 
-        db.addUser("username1", "pass1", "bio1");
-
-        User user = db.getUserByUsername("username1");
-        String validUserId = user.getUserId();
-
-        user.addListing(new Item("3", "The Secret of Emberwood", "In the heart of Emberwood,", "Book", 0));
-
-        System.out.println();
-        assertNotNull(user);
-        //assertEquals(user, searchBar.findSellerById(validUserId));
+        User found = searchBar.findSellerById(u.getUserId());
+        assertNotNull(found);
+        assertEquals(u.getUserId(), found.getUserId());
     }
 
 
@@ -36,16 +33,10 @@ public class SearchBarTest {
     public void testFindSellerById_InvalidUserId_NoActingListing() {
         Database db = new Database();
         SearchBar searchBar = new SearchBar(db);
-        String invalidUserId = "d8bb19d1-d5e5-4a32-9e0d-68248fefdd3d";
+        db.addUser("user2", "pass", "bio");
+        User u = db.getUserByUsername("user2");
 
-        String username1 = "d8bb19d1-d5e5-4a32-9e0d-68248fefdd3d";
-        String pass1 = "pass";
-        String bio1 = "bio";
-
-        User user = new User(username1, pass1, bio1, db);
-        db.addUser(username1, pass1, bio1);
-
-        assertNull(searchBar.findSellerById(invalidUserId));
+        assertNull(searchBar.findSellerById(u.getUserId()));
     }
 
     /*
@@ -53,16 +44,11 @@ public class SearchBarTest {
      * expect get: null
      */
     @Test
-    public void testFindSellerById_InvalidUserId_DNE() {
+    public void testFindSellerById_DoesNotExist() {
         Database db = new Database();
         SearchBar searchBar = new SearchBar(db);
-        String invalidUserId = "nonexistent-user-id";
-
-        assertNull(searchBar.findSellerById(invalidUserId));
+        assertNull(searchBar.findSellerById("nonexistent"));
     }
-
-
-
 
     /*
      * Find seller by partial valid user id
@@ -72,26 +58,22 @@ public class SearchBarTest {
     public void testSearchSellersByPartialId() {
         Database db = new Database();
         SearchBar searchBar = new SearchBar(db);
-        String partialId = "d8bb19d1";
-        String username1 = "d8bb19d1-d5e5-4a32-9e0d-68248fefdd3d";
-        String username2 = "d8bb19d1-c3e4-5b62-9a1d-9b149aeb2f8e";
-        String username3 = "a7cf28c1-c3e4-5b62-9a1d-9b149aeb2f8e";
+        db.addUser("userA", "pass", "bio");
+        db.addUser("userB", "pass", "bio");
 
-        User user = new User(username1, "pass1", "bio1", db);
-        User user2 = new User(username2, "pass1", "bio1", db);
-        User user3 = new User(username3, "pass1", "bio1", db);
+        User ua = db.getUserByUsername("userA");
+        User ub = db.getUserByUsername("userB");
+        // Add an item to each so they have active listings
+        db.addItem(new Item(ua.getUserId(), "I1", "d", "Cat", 1.0));
+        db.addItem(new Item(ub.getUserId(), "I2", "d", "Cat", 2.0));
 
-        user.addListing(new Item("3", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0));
-        user2.addListing(new Item("4", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0));
-        user3.addListing(new Item("4", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0));
-
-
-        List<User> results = searchBar.searchSellersByPartialId(partialId);
-
-        assertFalse(results.isEmpty());
-        assertTrue(results.contains(user));
-        assertTrue(results.contains(user2));
-        assertFalse(results.contains(user3));
+        // Use a substring of ua's userId
+        String partial = ua.getUserId().substring(0, 8).toLowerCase();
+        List<User> results = searchBar.searchSellersByPartialId(partial);
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertTrue(results.contains(ua));
+        assertFalse(results.contains(ub));
     }
 
     /*
@@ -102,22 +84,15 @@ public class SearchBarTest {
     public void testSearchSellersByPartialId_noMatch() {
         Database db = new Database();
         SearchBar searchBar = new SearchBar(db);
-        String partialId = "d8bb19d1";
-        String username1 = "a7cf28c1-d5e5-4a32-9e0d-68248fefdd3d";
-        String username2 = "a7cf28c1-c3e4-5b62-9a1d-9b149aeb2f8e";
-        String username3 = "a7cf28c1-c3e4-5b62-9a1d-9b149aeb2f8e";
+        db.addUser("userC", "pass", "bio");
+        // add an item so C is active
+        User uc = db.getUserByUsername("userC");
+        db.addItem(new Item(uc.getUserId(), "I3", "d", "Cat", 3.0));
 
-        User user = new User(username1, "pass1", "bio1", db);
-        User user2 = new User(username2, "pass1", "bio1", db);
-        User user3 = new User(username3, "pass1", "bio1", db);
-
-        user.addListing(new Item("3", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0));
-        user2.addListing(new Item("4", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0));
-        user3.addListing(new Item("4", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0));
-
-        List<User> results = searchBar.searchSellersByPartialId(partialId);
-
-        assertNull(results);
+        // search with unrelated substring
+        List<User> results = searchBar.searchSellersByPartialId("zzzz");
+        assertNotNull(results);
+        assertTrue(results.isEmpty());
     }
 
     /*
@@ -128,21 +103,21 @@ public class SearchBarTest {
     public void testgetAllActiveSellers() {
         Database db = new Database();
         SearchBar searchBar = new SearchBar(db);
-        String username1 = "a7cf28c1-d5e5-4a32-9e0d-68248fefdd3d";
-        String username2 = "a7cf28c1-c3e4-5b62-9a1d-9b149aeb2f8e";
-        String username3 = "a7cf28c1-c3e4-5b62-9a1d-9b149aeb2f8e";
+        db.addUser("user1", "pass1", "bio1");
+        db.addUser("user2", "pass1", "bio1");
+        db.addUser("user3", "pass1", "bio1");
 
-        User user = new User(username1, "pass1", "bio1", db);
-        User user2 = new User(username2, "pass1", "bio1", db);
-        User user3 = new User(username3, "pass1", "bio1", db);
+        User user1 = db.getUserByUsername("user1");
+        User user2 = db.getUserByUsername("user2");
+        User user3 = db.getUserByUsername("user3");
 
-        user.addListing(new Item("3", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0));
-        user3.addListing(new Item("4", "The Secret of Emberwood", "In the heart of Emberwood, young Elara stumbles upon an ancient key buried beneath the roots of an enchanted tree. When she unlocks a hidden doorway, she discovers a forgotten world brimming with talking animals, lost spells, and a secret that could change everything. But the deeper she explores, the more she realizes that something dark is lurking in the shadows-waiting. With the help of her mischievous fox companion, Finn, Elara must race against time to unravel the mystery before Emberwood falls into darkness forever.", "Book", 0));
+        db.addItem(new Item(user1.getUserId(), "A", "d", "C", 5.0));
+        db.addItem(new Item(user3.getUserId(), "B", "d", "C", 6.0));
 
         List<User> results = searchBar.getAllActiveSellers();
 
         assertFalse(results.isEmpty());
-        assertTrue(results.contains(user));
+        assertTrue(results.contains(user1));
         assertTrue(results.contains(user3));
         assertFalse(results.contains(user2));
     }
@@ -155,16 +130,11 @@ public class SearchBarTest {
     public void testgetAllActiveSellers_noMatch() {
         Database db = new Database();
         SearchBar searchBar = new SearchBar(db);
-        String username1 = "a7cf28c1-d5e5-4a32-9e0d-68248fefdd3d";
-        String username2 = "a7cf28c1-c3e4-5b62-9a1d-9b149aeb2f8e";
-        String username3 = "a7cf28c1-c3e4-5b62-9a1d-9b149aeb2f8e";
+        db.addUser("u4", "pass", "bio");
+        db.addUser("u5", "pass", "bio");
 
-        User user = new User(username1, "pass1", "bio1", db);
-        User user2 = new User(username2, "pass1", "bio1", db);
-        User user3 = new User(username3, "pass1", "bio1", db);
-
-        List<User> results = searchBar.getAllActiveSellers();
-
-        assertTrue(results.isEmpty());
+        List<User> active = searchBar.getAllActiveSellers();
+        assertNotNull(active);
+        assertTrue(active.isEmpty());
     }
 }
