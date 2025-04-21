@@ -1,126 +1,220 @@
 import static org.junit.Assert.*;
-
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Test;
-
+import org.junit.*;
 import java.io.*;
 import java.net.*;
 
-/**
- * Tests for Client class
- * Covers all command methods via dummy server on port 1234
- * @author Rayaan Grewal
- * @version April 18th, 2025
- */
 public class ClientTest {
-	private Client client;
 	private ServerSocket serverSocket;
 	private Thread serverThread;
+	private Client client;
 
 	@Before
 	public void setUp() throws Exception {
+
 		serverSocket = new ServerSocket(1234);
 		serverThread = new Thread(() -> {
 			try {
-				while (!Thread.currentThread().isInterrupted()) {
-					Socket sock = serverSocket.accept();
-					new Thread(() -> {
-						try (
-								BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-								BufferedWriter out = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()))
-						) {
-							String line;
-							while ((line = in.readLine()) != null) {
-								String response;
-								if (line.startsWith("PING")) {
-									response = "PONG";
-								} else if (line.startsWith("REGISTER,")) {
-									response = "REGISTER,SUCCESS,FAKE_ID";
-								} else if (line.startsWith("LOGIN,")) {
-									response = "LOGIN,SUCCESS,FAKE_ID";
-								} else if (line.startsWith("DELETE_ACCOUNT,")) {
-									response = "DELETE_ACCOUNT,SUCCESS";
-								} else if (line.startsWith("ADD_ITEM,")) {
-									response = "ADD_ITEM,SUCCESS,FAKE_ITEM";
-								} else if (line.startsWith("GET_ITEM,")) {
-									response = "GET_ITEM,ITEM_DATA";
-								} else if (line.startsWith("SEARCH_ITEMS,")) {
-									response = "SEARCH_ITEMS,RESULT1;RESULT2";
-								} else if (line.startsWith("MARK_SOLD,")) {
-									response = "MARK_SOLD,SUCCESS";
-								} else if (line.startsWith("REMOVE_ITEM,")) {
-									response = "REMOVE_ITEM,SUCCESS";
-								} else if (line.startsWith("SEND_MESSAGE,")) {
-									response = "SEND_MESSAGE,SUCCESS";
-								} else if (line.startsWith("GET_MESSAGES,")) {
-									response = "GET_MESSAGES,msg1|msg2";
-								} else if (line.startsWith("GET_CONVERSATIONS,")) {
-									response = "GET_CONVERSATIONS,userA;userB";
-								} else if (line.startsWith("ADD_FUNDS,")) {
-									response = "ADD_FUNDS,SUCCESS";
-								} else if (line.startsWith("WITHDRAW_FUNDS,")) {
-									response = "WITHDRAW_FUNDS,SUCCESS";
-								} else if (line.startsWith("PROCESS_PURCHASE,")) {
-									response = "PROCESS_PURCHASE,SUCCESS";
-								} else if (line.startsWith("RATE_SELLER,")) {
-									response = "RATE_SELLER,SUCCESS";
-								} else if (line.startsWith("GET_RATING,")) {
-									response = "GET_RATING,4.5";
-								} else {
-									response = "UNKNOWN";
-								}
-								out.write(response);
-								out.newLine();
-								out.flush();
-							}
-						} catch (IOException e) {
-							//pollution
-						}
-					}).start();
+				Socket sock = serverSocket.accept();
+				BufferedReader in = new BufferedReader(
+						new InputStreamReader(sock.getInputStream()));
+				BufferedWriter out = new BufferedWriter(
+						new OutputStreamWriter(sock.getOutputStream()));
+				String line;
+				while ((line = in.readLine()) != null) {
+					String cmd = line.split(",")[0];
+					String response;
+					switch (cmd) {
+						case "REGISTER":
+						case "DELETE_ACCOUNT":
+						case "ADD_ITEM":
+						case "GET_ITEM":
+						case "SEARCH_ITEMS":
+						case "GET_USER_LISTINGS":
+						case "MARK_SOLD":
+						case "REMOVE_ITEM":
+						case "SEND_MESSAGE":
+						case "GET_MESSAGES":
+						case "GET_CONVERSATIONS":
+						case "ADD_FUNDS":
+						case "WITHDRAW_FUNDS":
+						case "PROCESS_PURCHASE":
+						case "RATE_SELLER":
+						case "GET_RATING":
+						case "GET_ALL_USERS":
+						case "GET_ACTIVE_SELLERS":
+						case "GET_MY_RATING":
+							response = cmd + ",SUCCESS,ok";
+							break;
+
+						case "LOGIN":
+							response = "LOGIN,SUCCESS,user123";
+							break;
+
+						case "GET_BALANCE":
+							response = "GET_BALANCE,SUCCESS,50.0";
+							break;
+
+						default:
+							response = "UNKNOWN,FAIL";
+					}
+					out.write(response);
+					out.newLine();
+					out.flush();
 				}
-			} catch (IOException e) {
-				//pollution
+			} catch (IOException ignored) {
 			}
 		});
 		serverThread.start();
 
+		// connect client
 		client = new Client();
-		Thread.sleep(50);
+		assertTrue(client.connect());
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		if (client != null) client.disconnect();
-		if (serverSocket != null && !serverSocket.isClosed()) {
-			try {
-				serverSocket.close();
-			} catch (IOException e) {
-
-			}
-		}
-		if (serverThread != null && serverThread.isAlive()) {
-			serverThread.interrupt();
-		}
+		client.disconnect();
+		serverSocket.close();
+		serverThread.interrupt();
 	}
 
-	@Test public void testConnect() { assertTrue(client.connect()); }
-	@Test public void testPing() { client.connect(); assertEquals("PONG", client.sendMessage("PING")); }
-	@Test public void testRegister() { client.connect(); assertEquals("REGISTER,SUCCESS,FAKE_ID", client.register("u","p","b")); }
-	@Test public void testLogin() { client.connect(); assertEquals("LOGIN,SUCCESS,FAKE_ID", client.login("u","p")); assertEquals("FAKE_ID", client.getCurrentUserId()); }
-	@Test public void testDeleteAccount() { client.connect(); assertEquals("DELETE_ACCOUNT,SUCCESS", client.deleteAccount("u")); }
-	@Test public void testAddItem() { client.connect(); assertEquals("ADD_ITEM,SUCCESS,FAKE_ITEM", client.addItem("s","t","d","c",1.23)); }
-	@Test public void testGetItem() { client.connect(); assertEquals("GET_ITEM,ITEM_DATA", client.getItem("item1")); }
-	@Test public void testSearchItems() { client.connect(); assertEquals("SEARCH_ITEMS,RESULT1;RESULT2", client.searchItems("q","c",2)); }
-	@Test public void testMarkSold() { client.connect(); assertEquals("MARK_SOLD,SUCCESS", client.markSold("item","buyer")); }
-	@Test public void testRemoveItem() { client.connect(); assertEquals("REMOVE_ITEM,SUCCESS", client.removeItem("item","seller")); }
-	@Test public void testSendMessageToUser() { client.connect(); assertEquals("SEND_MESSAGE,SUCCESS", client.sendMessageToUser("s","r","c","i")); }
-	@Test public void testGetMessages() { client.connect(); assertEquals("GET_MESSAGES,msg1|msg2", client.getMessages("b","s")); }
-	@Test public void testGetConversations() { client.connect(); assertEquals("GET_CONVERSATIONS,userA;userB", client.getConversations("u")); }
-	@Test public void testAddFunds() { client.connect(); assertEquals("ADD_FUNDS,SUCCESS", client.addFunds("u",5.0)); }
-	@Test public void testWithdrawFunds() { client.connect(); assertEquals("WITHDRAW_FUNDS,SUCCESS", client.withdrawFunds("u",2.0)); }
-	@Test public void testProcessPurchase() { client.connect(); assertEquals("PROCESS_PURCHASE,SUCCESS", client.processPurchase("b","i")); }
-	@Test public void testRateSeller() { client.connect(); assertEquals("RATE_SELLER,SUCCESS", client.rateSeller("s",4.0)); }
-	@Test public void testGetRating() { client.connect(); assertEquals("GET_RATING,4.5", client.getRating("s")); }
-	@Test public void testCurrentUserId() { client.setCurrentUserId("XYZ"); assertEquals("XYZ", client.getCurrentUserId()); }
+	@Test
+	public void testRegister() {
+		String resp = client.register("user","pass","bio");
+		assertEquals("REGISTER,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testLogin() {
+		String resp = client.login("user","pass");
+		assertEquals("LOGIN,SUCCESS,user123", resp);
+		assertEquals("user123", client.getCurrentUserId());
+	}
+
+	@Test
+	public void testDeleteAccount() {
+		String resp = client.deleteAccount("userId");
+		assertEquals("DELETE_ACCOUNT,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testAddItem() {
+		String resp = client.addItem("seller","title","desc","cat",9.99);
+		assertEquals("ADD_ITEM,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testGetItem() {
+		String resp = client.getItem("itemId");
+		assertEquals("GET_ITEM,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testSearchItems() {
+		String resp = client.searchItems("q","cat",5);
+		assertEquals("SEARCH_ITEMS,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testGetUserListings() {
+		String resp = client.getUserListings("userId", true);
+		assertEquals("GET_USER_LISTINGS,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testMarkSold() {
+		String resp = client.markSold("itemId","buyerId");
+		assertEquals("MARK_SOLD,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testRemoveItem() {
+		String resp = client.removeItem("itemId","sellerId");
+		assertEquals("REMOVE_ITEM,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testSendMessageToUser() {
+		String resp = client.sendMessageToUser("sender","receiver","hi","none");
+		assertEquals("SEND_MESSAGE,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testGetMessages() {
+		String resp = client.getMessages("buyer","seller");
+		assertEquals("GET_MESSAGES,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testGetConversations() {
+		String resp = client.getConversations("userId");
+		assertEquals("GET_CONVERSATIONS,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testAddFunds() {
+		String resp = client.addFunds("userId", 20.0);
+		assertEquals("ADD_FUNDS,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testWithdrawFunds() {
+		String resp = client.withdrawFunds("userId", 10.0);
+		assertEquals("WITHDRAW_FUNDS,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testProcessPurchase() {
+		String resp = client.processPurchase("buyer","itemId");
+		assertEquals("PROCESS_PURCHASE,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testRateSeller() {
+		String resp = client.rateSeller("seller",4.5);
+		assertEquals("RATE_SELLER,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testGetRating() {
+		String resp = client.getRating("seller");
+		assertEquals("GET_RATING,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testGetAllUsers() {
+		String resp = client.getAllUsers();
+		assertEquals("GET_ALL_USERS,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testGetActiveSellers() {
+		String resp = client.getActiveSellers();
+		assertEquals("GET_ACTIVE_SELLERS,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testGetBalance() {
+		String resp = client.sendMessage("GET_BALANCE,uid");
+		assertEquals("GET_BALANCE,SUCCESS,50.0", resp);
+	}
+
+	@Test
+	public void testGetMyRating() {
+		String resp = client.getMyRating("userId");
+		assertEquals("GET_MY_RATING,SUCCESS,ok", resp);
+	}
+
+	@Test
+	public void testSetAndGetCurrentUserId() {
+		client.setCurrentUserId("abc");
+		assertEquals("abc", client.getCurrentUserId());
+	}
+
+	@Test
+	public void testDisconnectAndSendMessageError() {
+		client.disconnect();
+		String resp = client.sendMessage("PING");
+		assertTrue(resp.startsWith("ERROR"));
+	}
 }
