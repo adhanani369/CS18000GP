@@ -2,18 +2,21 @@ import static org.junit.Assert.*;
 
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
 
 public class SearchBarTest {
+    private Database db;
+    private SearchBar searchBar;
 
-     /*
-     * Find seller by valid user id
-     * expect return: user
-     */
+    @Before
+    public void setUp() {
+        db = new Database();
+        searchBar = new SearchBar(db);
+    }
+
     @Test
     public void testFindSellerById_ValidUserId() {
-        Database db = new Database();
-        SearchBar searchBar = new SearchBar(db);
         db.addUser("user1", "pass", "bio");
         User u = db.getUserByUsername("user1");
         Item item = new Item(u.getUserId(), "Book A", "Desc", "Books", 10.0);
@@ -24,40 +27,21 @@ public class SearchBarTest {
         assertEquals(u.getUserId(), found.getUserId());
     }
 
-
-    /*
-     * Find seller by invalid user id because the user have no active listings
-     * expect get: null
-     */
     @Test
-    public void testFindSellerById_InvalidUserId_NoActingListing() {
-        Database db = new Database();
-        SearchBar searchBar = new SearchBar(db);
+    public void testFindSellerById_NoActiveListings() {
         db.addUser("user2", "pass", "bio");
         User u = db.getUserByUsername("user2");
 
         assertNull(searchBar.findSellerById(u.getUserId()));
     }
 
-    /*
-     * Find seller by invalid user id because user id doesn't match any user in the database
-     * expect get: null
-     */
     @Test
     public void testFindSellerById_DoesNotExist() {
-        Database db = new Database();
-        SearchBar searchBar = new SearchBar(db);
         assertNull(searchBar.findSellerById("nonexistent"));
     }
 
-    /*
-     * Find seller by partial valid user id
-     * expect get: user id
-     */
     @Test
-    public void testSearchSellersByPartialId() {
-        Database db = new Database();
-        SearchBar searchBar = new SearchBar(db);
+    public void testSearchSellersByPartialId_SingleMatch() {
         db.addUser("userA", "pass", "bio");
         db.addUser("userB", "pass", "bio");
 
@@ -76,14 +60,8 @@ public class SearchBarTest {
         assertFalse(results.contains(ub));
     }
 
-    /*
-     * Find seller by partial valid user id with no match
-     * expect get: null
-     */
     @Test
-    public void testSearchSellersByPartialId_noMatch() {
-        Database db = new Database();
-        SearchBar searchBar = new SearchBar(db);
+    public void testSearchSellersByPartialId_NoMatch() {
         db.addUser("userC", "pass", "bio");
         // add an item so C is active
         User uc = db.getUserByUsername("userC");
@@ -95,41 +73,28 @@ public class SearchBarTest {
         assertTrue(results.isEmpty());
     }
 
-    /*
-     * Find all active sellers
-     * expect get: list of sellers
-     */
     @Test
-    public void testgetAllActiveSellers() {
-        Database db = new Database();
-        SearchBar searchBar = new SearchBar(db);
-        db.addUser("user1", "pass1", "bio1");
-        db.addUser("user2", "pass1", "bio1");
-        db.addUser("user3", "pass1", "bio1");
+    public void testGetAllActiveSellers() {
+        db.addUser("u1", "pass", "bio");
+        db.addUser("u2", "pass", "bio");
+        db.addUser("u3", "pass", "bio");
 
-        User user1 = db.getUserByUsername("user1");
-        User user2 = db.getUserByUsername("user2");
-        User user3 = db.getUserByUsername("user3");
+        User u1 = db.getUserByUsername("u1");
+        User u2 = db.getUserByUsername("u2");
+        User u3 = db.getUserByUsername("u3");
 
-        db.addItem(new Item(user1.getUserId(), "A", "d", "C", 5.0));
-        db.addItem(new Item(user3.getUserId(), "B", "d", "C", 6.0));
+        db.addItem(new Item(u1.getUserId(), "A", "d", "C", 5.0));
+        db.addItem(new Item(u3.getUserId(), "B", "d", "C", 6.0));
 
-        List<User> results = searchBar.getAllActiveSellers();
-
-        assertFalse(results.isEmpty());
-        assertTrue(results.contains(user1));
-        assertTrue(results.contains(user3));
-        assertFalse(results.contains(user2));
+        List<User> active = searchBar.getAllActiveSellers();
+        assertEquals(2, active.size());
+        assertTrue(active.contains(u1));
+        assertTrue(active.contains(u3));
+        assertFalse(active.contains(u2));
     }
 
-    /*
-     * Find none active sellers
-     * expect get: empty list
-     */
     @Test
-    public void testgetAllActiveSellers_noMatch() {
-        Database db = new Database();
-        SearchBar searchBar = new SearchBar(db);
+    public void testGetAllActiveSellers_NoMatch() {
         db.addUser("u4", "pass", "bio");
         db.addUser("u5", "pass", "bio");
 
