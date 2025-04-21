@@ -13,8 +13,52 @@ This project implements a marketplace application that allows users to buy and s
    javac *.java
    ```
 4. Run the application (implementation of main class is required)
+5. Start the Server
+6. Start the Client
 
+## Server and Client Communication
+The client communicates with the server exclusively via network IO using sockets. All logic and data handling are executed on the server, while the client only sends commands and displays responses.
+- **Server** handles all computation, data validation, and file persistence.
+- **Client** acts as a front-end wrapper that sends requests to the server and processes responses.
+- **Communication** is handled over TCP sockets on port `1234`.
+  
 ## Class Descriptions
+
+### Server.java
+Handles all network IO and communication between the client and the backend database.
+
+**Functionality:**
+- Accepts multiple client connections using threads
+- Routes client commands 
+- Validates input and interacts with the Database
+- Sends responses to clients over sockets
+
+**Key Methods:**
+- Account management: `handleRegister()`,`handleLogin()`,`handleDeleteAccount()`
+- Item management: `handleAddItem()`,`handleGetItem()`,`handleGetItem()`, `handleSearchItems()`, `handleMarkSold()`, `handleRemoveItem()`, `handleGetUserListings()`
+- Message handling: `handleSendMessage()`, `handleGetMessages()`, `handleGetConversations()` 
+
+
+
+### Client.java
+Represents the client-side logic for communicating with the server in the marketplace application.
+
+**Functionality:**
+- Establishes and manages a socket connection with the server
+- Sends formatted commands to the server and receives responses
+- Provides user-facing methods that encapsulate request-response interactions
+- Maintains the state of the current logged-in user
+- Handles most application logic on the server via network I/O
+
+**Key Methods:**
+- User management: `register()`, `login()`, `deleteAccount()`, `setCurrentUserId()`, `getCurrentUserId()`
+- Item management: `addItem()`, `getItem()`, `searchItems()`, `getUserListings()`, `markSold()`, `removeItem()`
+- Messaging: `sendMessageToUser()`, `getMessages()`, `getConversations()`
+- Financial operations: `addFunds()`, `withdrawFunds()`, `getBalance()`
+- Transaction processing: `processPurchase()`, `rateSeller()`, `getRating()`, `getMyRating()`
+- User discovery: `getAllUsers()`, `getActiveSellers()`
+- Connection handling: `connect()`, `disconnect()`, `sendMessage()`
+
 
 ### Database.java
 The core data management class that handles all persistent storage operations.
@@ -187,6 +231,11 @@ Each class has a corresponding test class (e.g., `DatabaseTest.java`, `UserTest.
 - Error conditions are handled properly
 - Data persistence functions correctly
 - Business logic maintains consistency
+  
+Server and Client class: 
+- All non-IO methods
+- Success and failure edge cases
+- Server-side processing logic excluding `run()` and IO
 
 
 ## Interface Implementation
