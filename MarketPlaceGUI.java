@@ -2120,18 +2120,5 @@ public class MarketPlaceGUI extends JFrame {
         }
     }
 
-    /**
-     * Main method to start the application.
-     */
-    public static void main(String[] args) {
-        // Set look and feel to system default
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // Start the GUI
-        SwingUtilities.invokeLater(() -> new MarketPlaceGUI());
-    }
+    
 }
