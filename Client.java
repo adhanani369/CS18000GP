@@ -1,8 +1,16 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 
-
+/**
+ * Client class that handles communication with the server.
+ * Now includes GUI integration.
+ * @author Ayush Dhanani
+ * @version April 29, 2025
+ */
 public class Client {
     private Socket socket;
     private BufferedReader reader;
@@ -11,7 +19,13 @@ public class Client {
     private final String SERVER_ADDRESS = "localhost";
     private final int SERVER_PORT = 1234;
 
+    // GUI components
+    private static MarketPlaceGUI gui;
+    private static boolean guiMode = false;
 
+    /**
+     * Creates a new Client instance.
+     */
     public Client() {
         this.socket = null;
         this.reader = null;
@@ -20,6 +34,10 @@ public class Client {
         System.out.println("Client created");
     }
 
+    /**
+     * Connects to the server.
+     * @return true if connection was successful, false otherwise
+     */
     public boolean connect() {
         try {
             System.out.println("Connecting to server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
@@ -36,6 +54,9 @@ public class Client {
         }
     }
 
+    /**
+     * Disconnects from the server.
+     */
     public void disconnect() {
         try {
             System.out.println("Disconnecting from server");
@@ -56,6 +77,11 @@ public class Client {
         }
     }
 
+    /**
+     * Sends a message to the server and receives the response.
+     * @param message The message to send
+     * @return The response from the server
+     */
     public String sendMessage(String message) {
         try {
             System.out.println("Sending: " + message);
@@ -85,12 +111,25 @@ public class Client {
         }
     }
 
+    /**
+     * Registers a new user account.
+     * @param username The username for the new account
+     * @param password The password for the new account
+     * @param bio The bio for the new account
+     * @return The response from the server
+     */
     public String register(String username, String password, String bio) {
         System.out.println("Registering user: " + username);
         String message = "REGISTER," + username + "," + password + "," + bio;
         return sendMessage(message);
     }
 
+    /**
+     * Logs in a user.
+     * @param username The username
+     * @param password The password
+     * @return The response from the server
+     */
     public String login(String username, String password) {
         System.out.println("Logging in user: " + username);
         String message = "LOGIN," + username + "," + password;
@@ -106,125 +145,274 @@ public class Client {
         return response;
     }
 
+    /**
+     * Deletes a user account.
+     * @param userId The ID of the user account to delete
+     * @return The response from the server
+     */
     public String deleteAccount(String userId) {
         System.out.println("Deleting account: " + userId);
         String message = "DELETE_ACCOUNT," + userId;
         return sendMessage(message);
     }
 
+    /**
+     * Adds a new item listing.
+     * @param sellerId The ID of the seller
+     * @param title The title of the item
+     * @param description The description of the item
+     * @param category The category of the item
+     * @param price The price of the item
+     * @return The response from the server
+     */
     public String addItem(String sellerId, String title, String description, String category, double price) {
         System.out.println("Adding item: " + title + " (Price: $" + price + ")");
         String message = "ADD_ITEM," + sellerId + "," + title + "," + description + "," + category + "," + price;
         return sendMessage(message);
     }
 
+    /**
+     * Gets an item by ID.
+     * @param itemId The ID of the item
+     * @return The response from the server
+     */
     public String getItem(String itemId) {
         System.out.println("Getting item: " + itemId);
         String message = "GET_ITEM," + itemId;
         return sendMessage(message);
     }
 
+    /**
+     * Searches for items.
+     * @param query The search query
+     * @param category The category to search in (optional)
+     * @param maxResults The maximum number of results to return
+     * @return The response from the server
+     */
     public String searchItems(String query, String category, int maxResults) {
         System.out.println("Searching for items: " + query);
         String message = "SEARCH_ITEMS," + query + "," + (category == null ? "" : category) + "," + maxResults;
         return sendMessage(message);
     }
 
+    /**
+     * Gets user listings.
+     * @param userId The ID of the user
+     * @param activeOnly Whether to only include active listings
+     * @return The response from the server
+     */
     public String getUserListings(String userId, boolean activeOnly) {
         System.out.println("Getting " + (activeOnly ? "active" : "all") + " listings for user: " + userId);
         String message = "GET_USER_LISTINGS," + userId + "," + activeOnly;
         return sendMessage(message);
     }
 
+    /**
+     * Marks an item as sold.
+     * @param itemId The ID of the item
+     * @param buyerId The ID of the buyer
+     * @return The response from the server
+     */
     public String markSold(String itemId, String buyerId) {
         System.out.println("Marking item sold: " + itemId + " to buyer " + buyerId);
         String message = "MARK_SOLD," + itemId + "," + buyerId;
         return sendMessage(message);
     }
 
+    /**
+     * Removes an item listing.
+     * @param itemId The ID of the item
+     * @param sellerId The ID of the seller
+     * @return The response from the server
+     */
     public String removeItem(String itemId, String sellerId) {
         System.out.println("Removing item: " + itemId);
         String message = "REMOVE_ITEM," + itemId + "," + sellerId;
         return sendMessage(message);
     }
 
+    /**
+     * Sends a message to another user.
+     * @param senderId The ID of the sender
+     * @param receiverId The ID of the receiver
+     * @param content The message content
+     * @param itemId The ID of the related item (or "none" if none)
+     * @return The response from the server
+     */
     public String sendMessageToUser(String senderId, String receiverId, String content, String itemId) {
         System.out.println("Sending message to user " + receiverId);
         String message = "SEND_MESSAGE," + senderId + "," + receiverId + "," + content + "," + itemId;
         return sendMessage(message);
     }
 
+    /**
+     * Gets messages between two users.
+     * @param buyerId The ID of the buyer
+     * @param sellerId The ID of the seller
+     * @return The response from the server
+     */
     public String getMessages(String buyerId, String sellerId) {
         System.out.println("Getting messages between " + buyerId + " and " + sellerId);
         String message = "GET_MESSAGES," + buyerId + "," + sellerId;
         return sendMessage(message);
     }
 
+    /**
+     * Gets conversations for a user.
+     * @param userId The ID of the user
+     * @return The response from the server
+     */
     public String getConversations(String userId) {
         System.out.println("Getting conversations for user " + userId);
         String message = "GET_CONVERSATIONS," + userId;
         return sendMessage(message);
     }
 
+    /**
+     * Adds funds to a user's account.
+     * @param userId The ID of the user
+     * @param amount The amount to add
+     * @return The response from the server
+     */
     public String addFunds(String userId, double amount) {
         System.out.println("Adding funds: $" + amount + " to user " + userId);
         String message = "ADD_FUNDS," + userId + "," + amount;
         return sendMessage(message);
     }
 
+    /**
+     * Withdraws funds from a user's account.
+     * @param userId The ID of the user
+     * @param amount The amount to withdraw
+     * @return The response from the server
+     */
     public String withdrawFunds(String userId, double amount) {
         System.out.println("Withdrawing funds: $" + amount + " from user " + userId);
         String message = "WITHDRAW_FUNDS," + userId + "," + amount;
         return sendMessage(message);
     }
 
+    /**
+     * Processes a purchase transaction.
+     * @param buyerId The ID of the buyer
+     * @param itemId The ID of the item
+     * @return The response from the server
+     */
     public String processPurchase(String buyerId, String itemId) {
         System.out.println("Processing purchase of item " + itemId + " by buyer " + buyerId);
         String message = "PROCESS_PURCHASE," + buyerId + "," + itemId;
         return sendMessage(message);
     }
 
+    /**
+     * Rates a seller.
+     * @param sellerId The ID of the seller
+     * @param rating The rating (1-5)
+     * @return The response from the server
+     */
     public String rateSeller(String sellerId, double rating) {
         System.out.println("Rating seller " + sellerId + " with " + rating + " stars");
         String message = "RATE_SELLER," + sellerId + "," + rating;
         return sendMessage(message);
     }
 
+    /**
+     * Gets a seller's rating.
+     * @param sellerId The ID of the seller
+     * @return The response from the server
+     */
     public String getRating(String sellerId) {
         System.out.println("Getting rating for seller " + sellerId);
         String message = "GET_RATING," + sellerId;
         return sendMessage(message);
     }
 
+    /**
+     * Gets all users.
+     * @return The response from the server
+     */
     public String getAllUsers() {
         System.out.println("Getting all users");
         String message = "GET_ALL_USERS";
         return sendMessage(message);
     }
 
+    /**
+     * Gets all active sellers.
+     * @return The response from the server
+     */
     public String getActiveSellers() {
         System.out.println("Getting all active sellers");
         String message = "GET_ACTIVE_SELLERS";
         return sendMessage(message);
     }
 
+    /**
+     * Gets the current user ID.
+     * @return The current user ID
+     */
     public String getCurrentUserId() {
         return currentUserId;
     }
 
+    /**
+     * Sets the current user ID.
+     * @param userId The user ID to set
+     */
     public void setCurrentUserId(String userId) {
         this.currentUserId = userId;
     }
 
+    /**
+     * Gets the user's own rating.
+     * @param userId The ID of the user
+     * @return The response from the server
+     */
     public String getMyRating(String userId) {
         System.out.println("Getting my rating: " + userId);
         String message = "GET_MY_RATING," + userId;
         return sendMessage(message);
     }
 
+    /**
+     * Runs the application in GUI mode.
+     */
+    public static void startGUI() {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
+        // Show splash screen
+        SplashScreen splashScreen = new SplashScreen();
+        splashScreen.setVisible(true);
 
-    public static void main(String[] args) {
+        // Start application in a separate thread to allow splash screen to be shown
+        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                // Simulate loading time
+                Thread.sleep(1500);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                splashScreen.dispose();
+                SwingUtilities.invokeLater(() -> gui = new MarketPlaceGUI());
+            }
+        };
+        worker.execute();
+    }
+
+    /**
+     * Runs the application in terminal mode. For now, I am keeping it in case we need to use it
+     * for debugging purposes but can remove later.
+     * I just don't want to remove it given the fact we had spend so much time on
+     * this beautiful piece of code
+     */
+    public static void startTerminal() {
         Client client = new Client();
         if (!client.connect()) return;
         Scanner sc = new Scanner(System.in);
@@ -685,5 +873,78 @@ public class Client {
             }
         }
         client.disconnect();
+    }
+
+
+    public static void main(String[] args) {
+        // Here we go!!!
+        startGUI();
+
+    }
+
+    /**
+     * Simple splash screen aka the screen for the application.
+     */
+    private static class SplashScreen extends JWindow {
+        public SplashScreen() {
+            // Set size and center on screen
+            setSize(500, 300);
+            setLocationRelativeTo(null);
+
+            // Create content panel with gradient background
+            JPanel content = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    GradientPaint gp = new GradientPaint(0, 0, new Color(0, 102, 204),
+                            w, h, new Color(0, 51, 102));
+                    g2d.setPaint(gp);
+                    g2d.fillRect(0, 0, w, h);
+                }
+            };
+            content.setLayout(new BorderLayout());
+
+            // Add title label
+            JLabel titleLabel = new JLabel("Dbay");
+            titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
+            titleLabel.setForeground(Color.WHITE);
+            titleLabel.setHorizontalAlignment(JLabel.CENTER);
+            content.add(titleLabel, BorderLayout.NORTH);
+
+            // Add version and copyright label
+            JLabel versionLabel = new JLabel("Version: THE BEST EVER");
+            versionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+            versionLabel.setForeground(Color.WHITE);
+            versionLabel.setHorizontalAlignment(JLabel.CENTER);
+            content.add(versionLabel, BorderLayout.SOUTH);
+
+            // Add loading animation (simulated with progress bar)
+            JProgressBar progress = new JProgressBar();
+            progress.setIndeterminate(true);
+            progress.setStringPainted(false);
+            progress.setBorderPainted(false);
+            progress.setForeground(Color.WHITE);
+            progress.setBackground(new Color(0, 51, 102));
+
+            JPanel progressPanel = new JPanel(new BorderLayout());
+            progressPanel.setOpaque(false);
+            progressPanel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+            progressPanel.add(progress, BorderLayout.SOUTH);
+
+            // Add logo (simulated with text)
+            JLabel logoLabel = new JLabel("MARKETPLACE");
+            logoLabel.setFont(new Font("Arial", Font.BOLD, 36));
+            logoLabel.setForeground(Color.WHITE);
+            logoLabel.setHorizontalAlignment(JLabel.CENTER);
+            progressPanel.add(logoLabel, BorderLayout.CENTER);
+
+            content.add(progressPanel, BorderLayout.CENTER);
+
+            // Set content pane
+            setContentPane(content);
+        }
     }
 }
