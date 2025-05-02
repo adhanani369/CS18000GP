@@ -466,9 +466,16 @@ public class Server {
                 double price = item.getPrice();
                 boolean sold = item.isSold();
 
-                return "GET_ITEM,SUCCESS," + itemId + "," + sellerId + "," +
+                String response = "GET_ITEM,SUCCESS," + itemId + "," + sellerId + "," +
                         title + "," + description + "," + category + "," +
                         price + "," + sold;
+
+                // Add buyer ID if item is sold
+                if (sold) {
+                    response += "," + item.getBuyerId();
+                }
+
+                return response;
             } else {
                 return "GET_ITEM,FAILURE,Item not found";
             }
@@ -592,12 +599,27 @@ public class Server {
 
             System.out.println("Processing message from " + senderId + " to " + receiverId);
 
-            // Simulate sending message (this would actually call database methods)
-            Message message = new Message(senderId, receiverId, content);
-            boolean success = database.addMessage(message); // Determines success of request
+            // Verify that both sender and receiver exist
+            User sender = database.getUserById(senderId);
+            User receiver = database.getUserById(receiverId);
 
-            return "SEND_MESSAGE," + (success ? "SUCCESS" : "FAILURE");
+            if (sender == null || receiver == null) {
+                return "SEND_MESSAGE,FAILURE,Invalid user";
+            }
+
+            // Create and save the message
+            Message message = new Message(senderId, receiverId, content);
+
+            // Use the database to add the message
+            boolean success = database.addMessage(message);
+
+            if (!success) {
+                return "SEND_MESSAGE,FAILURE,Database error";
+            }
+
+            return "SEND_MESSAGE,SUCCESS";
         }
+
 
 
         private String handleGetMessages(String[] parts) {
@@ -606,24 +628,35 @@ public class Server {
                 return "GET_MESSAGES,FAILURE,Invalid parameters";
             }
 
-            String buyerId = parts[1];
-            String sellerId = parts[2];
+            String user1Id = parts[1];
+            String user2Id = parts[2];
 
-            System.out.println("Processing get messages between " + buyerId + " and " + sellerId);
+            System.out.println("Processing get messages between " + user1Id + " and " + user2Id);
 
-            // Simulate getting messages (this would actually call database methods)
-            // Return: GET_MESSAGES,SUCCESS,count,messageId1,senderId1,receiverId1,timestamp1,content1,...
-            List<Message> messages = database.getMessagesBetweenUsers(buyerId, sellerId);
+            // Get messages between the two users
+            List<Message> messages = database.getMessagesBetweenUsers(user1Id, user2Id);
+
             if (messages == null || messages.isEmpty()) {
                 return "GET_MESSAGES,SUCCESS,0";
             }
-            StringBuilder response = new StringBuilder("GET_MESSAGES,SUCCESS,messages.size()");
 
-            // Add mock messages
-            for (Message message : messages){
-                response.append(message.getMessageId() + "," + message.getSenderId() + ","
-                        + message.getReceiverId() + "," + message.getTimestamp() + "," + message.getContent());
+            // Build the response with the correct message count
+            StringBuilder response = new StringBuilder("GET_MESSAGES,SUCCESS," + messages.size());
+
+            // Add messages to the response
+            for (Message message : messages) {
+                response.append(",")
+                        .append(message.getMessageId())
+                        .append(",")
+                        .append(message.getSenderId())
+                        .append(",")
+                        .append(message.getReceiverId())
+                        .append(",")
+                        .append(message.getTimestamp())
+                        .append(",")
+                        .append(message.getContent());
             }
+
             return response.toString();
         }
 
@@ -635,27 +668,49 @@ public class Server {
             }
 
             String userId = parts[1];
-
             System.out.println("Processing get conversations for user " + userId);
 
-            // Simulate getting conversations (this would actually call database methods)
-            // Return: GET_CONVERSATIONS,SUCCESS,count,userId1,username1,userId2,username2,...
-            List<Message> allMessages = database.getMessagesBetweenUsers(userId, null);
-            Set<String> conversation = new HashSet<>();
+            // Get all conversation files from the directory
+            File directory = new File(".");
+            File[] files = directory.listFiles((dir, name) ->
+                    (name.startsWith("buyer_" + userId + "_seller_") ||
+                            name.contains("_seller_" + userId + ".txt")) &&
+                            name.endsWith(".txt"));
 
-            for (Message message : allMessages) {
-                String otherId = message.getSenderId().equals(userId) ? message.getReceiverId() : message.getSenderId();
-                if (!otherId.equals(userId)) {
-                    conversation.add(otherId);
+            Set<String> partnerIds = new HashSet<>();
+
+            // Extract partner IDs from filenames
+            if (files != null) {
+                for (File file : files) {
+                    String filename = file.getName();
+                    String partnerId;
+
+                    if (filename.startsWith("buyer_" + userId + "_seller_")) {
+                        // User is the buyer, extract seller ID
+                        partnerId = filename.substring(
+                                ("buyer_" + userId + "_seller_").length(),
+                                filename.length() - 4  // Remove .txt
+                        );
+                    } else {
+                        // User is the seller, extract buyer ID
+                        partnerId = filename.substring(
+                                "buyer_".length(),
+                                filename.indexOf("_seller_")
+                        );
+                    }
+
+                    partnerIds.add(partnerId);
+                    System.out.println("Found conversation partner: " + partnerId);
                 }
             }
 
-            StringBuilder response = new StringBuilder("GET_CONVERSATIONS,SUCCESS," + conversation.size());
+            // Build response with partner IDs and usernames
+            StringBuilder response = new StringBuilder("GET_CONVERSATIONS,SUCCESS," + partnerIds.size());
 
-            for (String partnerId : conversation) {
+            for (String partnerId : partnerIds) {
                 User partner = database.getUserById(partnerId);
                 if (partner != null) {
-                    response.append("," + partnerId + "," + partner.getUsername());
+                    response.append(",").append(partnerId).append(",").append(partner.getUsername());
                 }
             }
 
