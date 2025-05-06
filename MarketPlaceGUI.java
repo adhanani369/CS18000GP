@@ -517,7 +517,7 @@ public class MarketPlaceGUI extends JFrame {
                                     itemCategory,
                                     currencyFormat.format(price),
                                     sellerId,
-                                    "Rating",
+                                    "N/A",
                                     "Buy"
                             });
                         }
